@@ -1,9 +1,10 @@
-import { BarChart3, Bot, GraduationCap, House, Layers, Settings, Swords, Trophy, Users } from 'lucide-react';
+import { BarChart3, Bot, GraduationCap, House, Layers, Settings, Swords, Trophy, UserRound, Users } from 'lucide-react';
 import { APP_NAME, APP_NAME_EN } from './brand.ts';
 import { useOnline } from './lib/online.tsx';
 import { Link, match, usePath } from './lib/router.tsx';
 import { useSettings } from './lib/settings.tsx';
 import { CardPage, CardStats, CardsIndex } from './pages/Cards.tsx';
+import Friends, { ChallengeLayer } from './pages/Friends.tsx';
 import Home from './pages/Home.tsx';
 import { LearnIndex, LessonPage } from './pages/Learn.tsx';
 import Login from './pages/Login.tsx';
@@ -22,6 +23,7 @@ function Routes({ path }: { path: string }) {
   if (path === '/play/ai') return <PlayOffline kind="ai" />;
   if (path === '/play/local') return <PlayOffline kind="local" />;
   if (path === '/play/online' || path === '/play') return <Online />;
+  if (path === '/friends') return <Friends />;
   if (path === '/leaderboard') return <Leaderboard />;
   if ((m = match('/u/:name', path))) return <Profile name={m.name!} />;
   if ((m = match('/game/:id', path))) return <Replay id={m.id!} />;
@@ -39,6 +41,7 @@ function Routes({ path }: { path: string }) {
 const NAV = [
   { to: '/', icon: House, label: '홈' },
   { to: '/play/online', icon: Swords, label: '온라인 대전' },
+  { to: '/friends', icon: UserRound, label: '친구' },
   { to: '/play/ai', icon: Bot, label: 'AI 대전' },
   { to: '/learn', icon: GraduationCap, label: '배우기' },
   { to: '/cards', icon: Layers, label: '카드' },
@@ -47,7 +50,8 @@ const NAV = [
 
 export default function App() {
   const path = usePath();
-  const { user, rating, game } = useOnline();
+  const { user, rating, game, friendRequests, incoming } = useOnline();
+  const badge = friendRequests + incoming.length;
   const { open } = useSettings();
   const inGame = game && !game.result && !path.startsWith('/play/online');
   const active = (to: string) => (to === '/' ? path === '/' : path.startsWith(to));
@@ -56,7 +60,7 @@ export default function App() {
       <aside className="sidebar" aria-label="주요 메뉴">
         <Link to="/" className="brand"><img src="/icon.svg" alt="" /><span>{APP_NAME}<small>{APP_NAME_EN}</small></span></Link>
         {NAV.map(({ to, icon: I, label }) => (
-          <Link key={to} to={to} className={`nav-item${active(to) && !(to === '/cards' && path === '/cards/stats') ? ' active' : ''}`} title={label}><I /><span>{label}</span></Link>
+          <Link key={to} to={to} className={`nav-item${active(to) && !(to === '/cards' && path === '/cards/stats') ? ' active' : ''}`} title={label}><I /><span>{label}</span>{to === '/friends' && badge > 0 && <em className="nbadge">{badge}</em>}</Link>
         ))}
         <div className="nav-sep" />
         <Link to="/play/local" className={`nav-item${active('/play/local') ? ' active' : ''}`} title="로컬 2인"><Users /><span>로컬 2인</span></Link>
@@ -91,12 +95,13 @@ export default function App() {
         <footer className="site-foot"><Link to="/about">규칙 요약 · 크레딧 · 개인정보</Link></footer>
       </div>
 
+      <ChallengeLayer path={path} />
       <nav className="tabbar" aria-label="하단 메뉴">
         <Link to="/" className={active('/') ? 'active' : ''}><House />홈</Link>
         <Link to="/learn" className={active('/learn') ? 'active' : ''}><GraduationCap />배우기</Link>
         <Link to="/play/online" className={active('/play') ? 'active' : ''}><Swords />대전</Link>
         <Link to="/cards" className={active('/cards') ? 'active' : ''}><Layers />카드</Link>
-        <Link to="/leaderboard" className={active('/leaderboard') ? 'active' : ''}><Trophy />랭킹</Link>
+        <Link to="/friends" className={active('/friends') ? 'active' : ''}><span className="tab-ic"><UserRound />{badge > 0 && <em className="nbadge">{badge}</em>}</span>친구</Link>
       </nav>
     </div>
   );

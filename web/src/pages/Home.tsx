@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bot, ChevronRight, Download, GraduationCap, Layers, Share, Swords, Timer, Users, X } from 'lucide-react';
+import { Bot, ChevronRight, Download, GraduationCap, Layers, Share, Swords, Timer, UserRound, Users, X } from 'lucide-react';
 import { CARDS, CARD_ORDER } from '@engine';
 import { APP_NAME } from '../brand.ts';
 import { CardView } from '../game/CardView.tsx';
@@ -99,6 +99,12 @@ export default function Home() {
           </div>
 
           <div className="list" style={{ marginTop: 14 }}>
+            <button className="list-row" onClick={() => navigate('/friends')}>
+              <span className="ic violet"><UserRound /></span>
+              <span className="grow"><b>친구와 대국</b><small>친구에게 신청하거나 초대 코드로 바로 시작</small></span>
+              {o.incoming.length + o.friendRequests > 0 && <em className="nbadge static">{o.incoming.length + o.friendRequests}</em>}
+              <ChevronRight className="chev" />
+            </button>
             <button className="list-row" onClick={() => navigate(nextLesson ? `/learn/${nextLesson.id}` : '/learn')}>
               <span className="ic teal"><GraduationCap /></span>
               <span className="grow"><b>{nextLesson ? '튜토리얼 이어가기' : '튜토리얼 복습'}</b><small>{nextLesson ? `다음: ${nextLesson.title}` : '모든 레슨을 마쳤어요'} · {prog.lessons.length}/{LESSONS.length}</small></span>

@@ -12,6 +12,10 @@ export interface GameView {
   id: string;
   mode: QueueMode;
   rated: boolean;
+  /** Started from a friend challenge or invite code (not the matchmaking queue). */
+  friendly: boolean;
+  /** Player user ids, so clients can offer a rematch. */
+  userIds: Record<Color, number>;
   you: Color | null;
   players: Record<Color, { username: string; rating: number; provisional: boolean }>;
   state: GameState;
@@ -73,6 +77,7 @@ export class Room {
   readonly seed = crypto.randomInt(0, 2 ** 31);
   readonly mode: QueueMode;
   readonly rated: boolean;
+  readonly friendly: boolean;
   readonly seats: Record<Color, Seat>;
   readonly tc: TimeControl;
   readonly state: GameState;
@@ -86,8 +91,9 @@ export class Room {
   private abortMs: number;
   private now: () => number;
 
-  constructor(mode: QueueMode, seats: Record<Color, Seat>, tc: TimeControl, events: RoomEvents, opts: { abortMs: number; now?: () => number }) {
+  constructor(mode: QueueMode, seats: Record<Color, Seat>, tc: TimeControl, events: RoomEvents, opts: { abortMs: number; now?: () => number; friendly?: boolean }) {
     this.mode = mode;
+    this.friendly = opts.friendly ?? false;
     this.rated = mode === 'rated';
     this.seats = seats;
     this.tc = tc;
@@ -235,7 +241,7 @@ export class Room {
   view(viewer: Color | null): GameView {
     const now = this.now();
     return {
-      id: this.id, mode: this.mode, rated: this.rated, you: viewer,
+      id: this.id, mode: this.mode, rated: this.rated, friendly: this.friendly, userIds: { w: this.seats.w.userId, b: this.seats.b.userId }, you: viewer,
       players: {
         w: { username: this.seats.w.username, rating: Math.round(this.seats.w.rating), provisional: this.seats.w.provisional },
         b: { username: this.seats.b.username, rating: Math.round(this.seats.b.rating), provisional: this.seats.b.provisional },

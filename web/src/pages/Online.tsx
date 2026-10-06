@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronRight, Flag, Handshake, Swords, Timer, Trophy } from 'lucide-react';
+import { ChevronRight, Flag, Handshake, Swords, Timer, Trophy, UserRound } from 'lucide-react';
 import type { Color } from '@engine';
 import { GameScreen, REASON_TEXT, ResultModal, type MenuItem } from '../game/GameScreen.tsx';
 import { cardEntry, moveEntry, pickEntry, startEntry, type HistEntry } from '../game/history.ts';
@@ -61,6 +61,11 @@ function Lobby() {
             <button className="list-row" onClick={() => o.joinQueue('casual')} disabled={offline}>
               <span className="ic blue"><Timer /></span>
               <span className="grow"><b>일반전</b><small>5분 + 3초 · 각자 다른 카드 · 레이팅 변동 없음</small></span>
+              <ChevronRight className="chev" />
+            </button>
+            <button className="list-row" onClick={() => navigate('/friends')}>
+              <span className="ic violet"><UserRound /></span>
+              <span className="grow"><b>친구와 대국</b><small>친구 목록에서 신청하거나 초대 코드 공유</small></span>
               <ChevronRight className="chev" />
             </button>
             <button className="list-row" onClick={() => navigate('/learn/ranked')}>
@@ -143,7 +148,9 @@ function OnlineGame() {
     overlay = (
       <ResultModal outcome={outcome} title={title} subtitle={REASON_TEXT[g.result.reason] ?? g.result.reason} delta={g.result.ratingDelta?.[you] ?? null}>
         <button className="btn" onClick={o.dismissGame}>로비로</button>
-        <button className="btn primary" onClick={() => { const m = g.mode; o.dismissGame(); o.joinQueue(m); }}>다시 매칭</button>
+        {g.friendly && g.result.winner !== 'aborted'
+          ? <button className="btn primary" onClick={() => { o.challenge(g.userIds[opp], g.mode); o.dismissGame(); navigate('/friends'); }}>재대국 신청</button>
+          : <button className="btn primary" onClick={() => { const m = g.mode; o.dismissGame(); o.joinQueue(m); }}>다시 매칭</button>}
       </ResultModal>
     );
   }
@@ -167,7 +174,7 @@ function OnlineGame() {
         status={status}
         overlay={overlay}
         menu={menu}
-        title={`${g.rated ? '레이팅전' : '일반전'} · ${g.increment === 5000 ? '10+5' : '5+3'}`}
+        title={`${g.friendly ? '친선 ' : ''}${g.rated ? '레이팅전' : '일반전'} · ${g.increment === 5000 ? '10+5' : '5+3'}`}
         onBack={() => navigate('/')}
       />
     </div>

@@ -139,27 +139,54 @@ export function createServer(opts: ServerOptions) {
     log(`game ${room.id} ${room.mode} ended ${r.winner} (${r.reason})`);
   }
 
-  async function startGame(a: Ticket, b: Ticket) {
-    const [ua, ub] = [a.userId, b.userId];
+  /** Start a game between two connected users. Returns false if either is unavailable. */
+  async function startGame(mode: QueueMode, ua: number, ub: number, friendly = false): Promise<boolean> {
     const names = new Map<number, string>();
     for (const uid of [ua, ub]) {
       const ws = [...(sockets.get(uid) ?? [])][0];
       const u = ws ? users.get(ws) : undefined;
-      if (!u) { queue.delete(uid); return; }
+      if (!u || busy(uid)) { queue.delete(uid); return false; }
       names.set(uid, u.username);
     }
+    queue.delete(ua);
+    queue.delete(ub);
     const [ra, rb] = await Promise.all([store.getRating(ua, season), store.getRating(ub, season)]);
     const flip = crypto.randomInt(2) === 0;
     const seat = (uid: number, r: Rating) => ({ userId: uid, username: names.get(uid)!, rating: r.rating, rd: r.rd, provisional: r.games < config.provisionalGames });
     const w = flip ? seat(ua, ra) : seat(ub, rb), bl = flip ? seat(ub, rb) : seat(ua, ra);
-    const room = new Room(a.mode, { w, b: bl }, config.timeControls[a.mode], events, { abortMs });
+    const room = new Room(mode, { w, b: bl }, config.timeControls[mode], events, { abortMs, friendly });
     rooms.set(room.id, room);
     userRoom.set(ua, room.id);
     userRoom.set(ub, room.id);
+    for (const c of [...challenges.values()]) if ([c.from, c.to].includes(ua) || [c.from, c.to].includes(ub)) closeChallenge(c, 'started');
     await store.createGame(room.record0(season));
-    log(`game ${room.id} ${a.mode}: ${w.username} vs ${bl.username}`);
+    log(`game ${room.id} ${mode}: ${w.username} vs ${bl.username}`);
     broadcast(room);
+    return true;
   }
+
+  const busy = (uid: number) => { const r = rooms.get(userRoom.get(uid) ?? ''); return !!r && !r.ended; };
+
+  // ------------------------------------------------------------------ challenges (friend games + invite codes)
+  interface Challenge { id: string; from: number; fromName: string; to: number | null; toName: string | null; mode: QueueMode; code: string | null; expires: number }
+  const challenges = new Map<string, Challenge>();
+  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const newCode = () => Array.from({ length: 6 }, () => CODE_CHARS[crypto.randomInt(CODE_CHARS.length)]).join('');
+
+  function challengeView(c: Challenge) {
+    return { id: c.id, from: { id: c.from, username: c.fromName }, to: c.to, toName: c.toName, mode: c.mode, code: c.code, expires: c.expires };
+  }
+  function closeChallenge(c: Challenge, reason: 'declined' | 'cancelled' | 'expired' | 'started' | 'offline') {
+    if (!challenges.delete(c.id)) return;
+    const msg = { type: 'challenge-closed', id: c.id, reason };
+    sendUser(c.from, msg);
+    if (c.to) sendUser(c.to, msg);
+  }
+  const challengeTimer = setInterval(() => {
+    const now = Date.now();
+    for (const c of [...challenges.values()]) if (c.expires <= now) closeChallenge(c, 'expired');
+  }, 2000);
+  challengeTimer.unref();
 
   let matching = false;
   async function matchTick() {
@@ -168,10 +195,8 @@ export function createServer(opts: ServerOptions) {
     try {
       const pairs = pairUp([...queue.values()], Date.now());
       for (const [a, b] of pairs) {
-        queue.delete(a.userId);
-        queue.delete(b.userId);
         for (const t of [a, b]) sendUser(t.userId, { type: 'unqueued', reason: 'matched' });
-        await startGame(a, b);
+        await startGame(a.mode, a.userId, b.userId);
       }
     } catch (e) {
       log(`match tick failed: ${(e as Error).message}`);
@@ -188,7 +213,7 @@ export function createServer(opts: ServerOptions) {
   async function api(req: http.IncomingMessage, res: http.ServerResponse, url: URL) {
     const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.socket.remoteAddress || '?';
     const route = `${req.method} ${url.pathname}`;
-    if (route === 'GET /api/health') return json(res, 200, { ok: true, season, rooms: [...rooms.values()].filter((r) => !r.ended).length, queue: queue.size, online: sockets.size });
+    if (route === 'GET /api/health') return json(res, 200, { ok: true, app: 'augment-arena', season, rooms: [...rooms.values()].filter((r) => !r.ended).length, queue: queue.size, online: sockets.size });
     if (route === 'POST /api/auth/register' || route === 'POST /api/auth/login') {
       if (!authLimiter.allow(ip)) return json(res, 429, { error: '잠시 후 다시 시도해 주세요.' });
       const body = await readBody(req);
@@ -218,6 +243,50 @@ export function createServer(opts: ServerOptions) {
       if (!user) return json(res, 401, { error: '로그인이 필요해요.' });
       const rating = await store.getRating(user.id, season);
       return json(res, 200, { user, rating: publicRating(rating), season, activeGame: userRoom.get(user.id) ?? null });
+    }
+    if (url.pathname.startsWith('/api/friends')) {
+      const me = await authUser(bearer(req));
+      if (!me) return json(res, 401, { error: '로그인이 필요해요.' });
+      const notify = (...ids: number[]) => ids.forEach((id) => sendUser(id, { type: 'friends' }));
+      if (route === 'GET /api/friends') {
+        const lists = await store.friendLists(me.id);
+        const decorate = async (u: User) => {
+          const r = await store.getRating(u.id, season);
+          return { id: u.id, username: u.username, rating: Math.round(r.rating), provisional: r.games < config.provisionalGames, online: sockets.has(u.id), playing: busy(u.id) };
+        };
+        return json(res, 200, {
+          friends: await Promise.all(lists.friends.map(decorate)),
+          incoming: await Promise.all(lists.incoming.map(decorate)),
+          outgoing: await Promise.all(lists.outgoing.map(decorate)),
+        });
+      }
+      if (req.method !== 'POST') return json(res, 405, { error: 'method not allowed' });
+      const body = await readBody(req);
+      if (route === 'POST /api/friends/request') {
+        const target = typeof body.username === 'string' ? await store.userByName(body.username.trim()) : null;
+        if (!target) return json(res, 404, { error: '그런 아이디의 플레이어가 없어요.' });
+        const r = await store.friendRequest(me.id, target.id);
+        if (r === 'self') return json(res, 400, { error: '나 자신은 친구로 추가할 수 없어요.' });
+        if (r === 'already-friends') return json(res, 409, { error: '이미 친구예요.' });
+        if (r === 'already-sent') return json(res, 409, { error: '이미 친구 요청을 보냈어요.' });
+        notify(me.id, target.id);
+        if (r === 'sent') sendUser(target.id, { type: 'friend-request', from: { id: me.id, username: me.username } });
+        return json(res, 200, { result: r });
+      }
+      const other = Number(body.userId);
+      if (!Number.isInteger(other)) return json(res, 400, { error: '잘못된 요청이에요.' });
+      if (route === 'POST /api/friends/respond') {
+        const ok = await store.respondFriend(me.id, other, body.accept === true);
+        if (!ok) return json(res, 404, { error: '받은 친구 요청이 없어요.' });
+        notify(me.id, other);
+        return json(res, 200, { ok: true });
+      }
+      if (route === 'POST /api/friends/remove') {
+        await store.removeFriend(me.id, other);
+        notify(me.id, other);
+        return json(res, 200, { ok: true });
+      }
+      return json(res, 404, { error: 'not found' });
     }
     if (route === 'GET /api/leaderboard') {
       const s = Number(url.searchParams.get('season') ?? season) || season;
@@ -279,7 +348,17 @@ export function createServer(opts: ServerOptions) {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     try {
-      if (url.pathname.startsWith('/api/')) await api(req, res, url);
+      if (url.pathname.startsWith('/api/')) {
+        // The mobile app (https://localhost) and other front-ends call the API cross-origin.
+        // Auth uses bearer tokens, not cookies, so allowing any origin is safe.
+        res.setHeader('access-control-allow-origin', req.headers.origin ?? '*');
+        res.setHeader('vary', 'origin');
+        res.setHeader('access-control-allow-headers', 'authorization, content-type');
+        res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+        res.setHeader('access-control-max-age', '600');
+        if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+        await api(req, res, url);
+      }
       else if (req.method === 'GET' || req.method === 'HEAD') serveStatic(req, res, url);
       else json(res, 405, { error: 'method not allowed' });
     } catch (e: any) {
@@ -325,6 +404,7 @@ export function createServer(opts: ServerOptions) {
           if (room && !room.ended) send(ws, { type: 'game', game: room.view(room.colorOf(u.id)) });
           const t = queue.get(u.id);
           if (t) send(ws, { type: 'queued', mode: t.mode, since: t.joinedAt });
+          for (const c of challenges.values()) if (c.to === u.id || c.from === u.id) send(ws, { type: c.to === u.id ? 'challenge' : 'challenge-sent', challenge: challengeView(c) });
           return;
         }
         if (msg.type === 'ping') return send(ws, { type: 'pong', serverNow: Date.now() });
@@ -337,6 +417,50 @@ export function createServer(opts: ServerOptions) {
           const r = await store.getRating(user.id, season);
           queue.set(user.id, { userId: user.id, mode, rating: r.rating, joinedAt: Date.now() });
           sendUser(user.id, { type: 'queued', mode, since: Date.now() });
+          return;
+        }
+        if (msg.type === 'challenge') {
+          const mode: QueueMode = msg.mode === 'rated' ? 'rated' : 'casual';
+          const to = Number(msg.to);
+          if (!Number.isInteger(to) || to === user.id) return send(ws, { type: 'error', message: '잘못된 대국 신청이에요.' });
+          const last = rooms.get(userRoom.get(user.id) ?? '');
+          const rematch = !!last?.friendly && [last.seats.w.userId, last.seats.b.userId].includes(to);
+          if (!rematch && !(await store.areFriends(user.id, to))) return send(ws, { type: 'error', message: '친구에게만 대국을 신청할 수 있어요.' });
+          if (!sockets.has(to)) return send(ws, { type: 'error', message: '친구가 지금 접속해 있지 않아요.' });
+          if (busy(to)) return send(ws, { type: 'error', message: '친구가 지금 대국 중이에요.' });
+          if (busy(user.id)) return send(ws, { type: 'error', message: '진행 중인 대국이 있어요.' });
+          for (const c of [...challenges.values()]) if (c.from === user.id && c.to === to) closeChallenge(c, 'cancelled');
+          const c: Challenge = { id: crypto.randomUUID(), from: user.id, fromName: user.username, to, toName: users.get([...sockets.get(to)!][0]!)?.username ?? null, mode, code: null, expires: Date.now() + 60_000 };
+          challenges.set(c.id, c);
+          sendUser(to, { type: 'challenge', challenge: challengeView(c) });
+          sendUser(user.id, { type: 'challenge-sent', challenge: challengeView(c) });
+          return;
+        }
+        if (msg.type === 'invite') {
+          const mode: QueueMode = msg.mode === 'rated' ? 'rated' : 'casual';
+          for (const c of [...challenges.values()]) if (c.from === user.id && c.code) closeChallenge(c, 'cancelled');
+          let code = newCode();
+          while ([...challenges.values()].some((c) => c.code === code)) code = newCode();
+          const c: Challenge = { id: crypto.randomUUID(), from: user.id, fromName: user.username, to: null, toName: null, mode, code, expires: Date.now() + 10 * 60_000 };
+          challenges.set(c.id, c);
+          sendUser(user.id, { type: 'challenge-sent', challenge: challengeView(c) });
+          return;
+        }
+        if (msg.type === 'challenge-accept') {
+          const code = typeof msg.code === 'string' ? msg.code.trim().toUpperCase() : null;
+          const c = code ? [...challenges.values()].find((x) => x.code === code) : challenges.get(String(msg.id));
+          if (!c || (c.to !== null && c.to !== user.id)) return send(ws, { type: 'error', message: code ? '초대 코드를 찾을 수 없어요. 코드가 만료됐을 수 있어요.' : '대국 신청이 만료됐어요.' });
+          if (c.from === user.id) return send(ws, { type: 'error', message: '내가 만든 초대 코드예요. 친구에게 보내 주세요.' });
+          if (!sockets.has(c.from)) { closeChallenge(c, 'offline'); return send(ws, { type: 'error', message: '상대가 접속을 끊었어요.' }); }
+          challenges.delete(c.id);
+          const ok = await startGame(c.mode, c.from, user.id, true);
+          if (!ok) send(ws, { type: 'error', message: '지금은 대국을 시작할 수 없어요. 둘 중 한 명이 대국 중이에요.' });
+          sendUser(c.from, { type: 'challenge-closed', id: c.id, reason: ok ? 'started' : 'cancelled' });
+          return;
+        }
+        if (msg.type === 'challenge-decline' || msg.type === 'challenge-cancel') {
+          const c = challenges.get(String(msg.id));
+          if (c && (c.to === user.id || c.from === user.id)) closeChallenge(c, msg.type === 'challenge-decline' ? 'declined' : 'cancelled');
           return;
         }
         if (msg.type === 'unqueue') {
@@ -375,6 +499,7 @@ export function createServer(opts: ServerOptions) {
       if (set && set.size === 0) {
         sockets.delete(u.id);
         queue.delete(u.id); // leaving the site leaves the queue; an active game keeps its clock running
+        for (const c of [...challenges.values()]) if (c.from === u.id || c.to === u.id) closeChallenge(c, 'offline');
       }
     });
   });
@@ -386,6 +511,7 @@ export function createServer(opts: ServerOptions) {
     matchNow: matchTick,
     async close() {
       clearInterval(matchTimer);
+      clearInterval(challengeTimer);
       for (const r of rooms.values()) r.dispose();
       for (const ws of wss.clients) ws.terminate();
       wss.close();

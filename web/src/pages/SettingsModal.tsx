@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { X } from 'lucide-react';
+import { customServer, isNative, serverBase, setCustomServer } from '../lib/server.ts';
 import { BOARD_THEMES, useSettings, type Settings } from '../lib/settings.tsx';
 import { Sheet } from '../lib/ui.tsx';
 
@@ -36,7 +38,40 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
       <div className="setting"><div><b>좌표 표시</b><span>보드 가장자리에 a~h, 1~8을 보여 줘요</span></div><Toggle label="좌표" on={s.coords} onChange={(v) => set({ coords: v })} /></div>
       <div className="setting"><div><b>기물 애니메이션</b><span>기물이 부드럽게 미끄러져요</span></div><Toggle label="애니메이션" on={s.animate} onChange={(v) => set({ animate: v })} /></div>
       <div className="setting"><div><b>튜토리얼 안내</b><span>다음에 누를 곳을 반짝이며 알려 줘요</span></div><Toggle label="튜토리얼 안내" on={s.guide} onChange={(v) => set({ guide: v })} /></div>
+      <ServerField />
       <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>PC 단축키: ← → 기보 이동 · F 판 뒤집기 · 마우스 오른쪽 드래그로 화살표 그리기</p>
     </Sheet>
+  );
+}
+
+/** Which game server to talk to. The installed app needs this unless an address was baked in at build time. */
+function ServerField() {
+  const [v, setV] = useState(customServer());
+  const [state, setState] = useState<'idle' | 'checking' | 'bad'>('idle');
+  const current = serverBase();
+  if (!isNative() && !customServer()) return null;
+  async function apply() {
+    const url = v.trim().replace(/\/+$/, '');
+    if (url) {
+      setState('checking');
+      try {
+        const full = /^https?:\/\//.test(url) ? url : `https://${url}`;
+        const r = await fetch(`${full}/api/health`);
+        if (!r.ok) throw new Error();
+      } catch { setState('bad'); return; }
+    }
+    setCustomServer(url);
+    location.reload();
+  }
+  return (
+    <div className="setting" style={{ display: 'block' }}>
+      <div><b>게임 서버 주소</b><span>{current ? `지금: ${current}` : '아직 설정되지 않았어요. 온라인 대전과 친구 기능에 필요해요.'}</span></div>
+      <div className="row" style={{ gap: 8, marginTop: 10 }}>
+        <input className="input grow" style={{ minWidth: 0 }} value={v} onChange={(e) => { setV(e.target.value); setState('idle'); }} placeholder="https://my-server.onrender.com"
+          autoCapitalize="none" autoCorrect="off" spellCheck={false} inputMode="url" aria-label="게임 서버 주소" />
+        <button className="btn" onClick={apply} disabled={state === 'checking'}>{state === 'checking' ? '확인 중…' : '저장'}</button>
+      </div>
+      {state === 'bad' && <p className="error-text" style={{ marginTop: 6 }}>이 주소의 서버에 연결할 수 없어요.</p>}
+    </div>
   );
 }

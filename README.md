@@ -9,6 +9,29 @@
 - 튜토리얼 7개 레슨 (22단계, 모두 실제 보드에서 진행)
 - AI 3단계 (웹 워커에서 동작)
 - 온라인 레이팅전/일반전: 서버가 모든 수와 시계를 검증 (치팅 방지)
+- 친구: 아이디로 친구 추가, 접속 상태 표시, 친구에게 대국 신청(일반전/레이팅전), 재대국, 친구 추가 없이 **6자리 초대 코드**로 바로 대국
+- Android 앱: GitHub Actions가 푸시마다 APK를 빌드해 릴리스에 올림
+
+## 바로 해보기
+
+### Android 앱 설치
+1. 이 저장소의 **Releases → `app-latest`** 를 휴대폰에서 엽니다.
+2. `augment-arena.apk`를 내려받아 열고, "출처를 알 수 없는 앱 설치"를 허용합니다.
+3. AI 대전·튜토리얼·카드 연습은 바로 됩니다. 온라인 대전·친구 기능은 아래처럼 서버를 띄운 뒤 쓰면 됩니다.
+
+APK는 `.github/workflows/android.yml`이 푸시할 때마다 새로 만들고, 같은 서명 키를 써서 기존 앱 위에 덮어 설치됩니다. (스토어 배포용이 아닌 테스트용 서명입니다. Play 스토어에 올릴 때는 별도 릴리스 키를 쓰세요.)
+
+### 서버 띄우기 (무료, 5분)
+1. [Render](https://render.com)에 가입 → **New → Blueprint** → 이 저장소 선택. `render.yaml`대로 게임 서버와 Postgres가 함께 만들어집니다.
+2. 배포가 끝나면 나오는 주소(예: `https://augment-arena.onrender.com`)를 브라우저로 열면 웹 버전이 바로 됩니다. 아이폰은 Safari에서 열고 공유 → "홈 화면에 추가"로 설치하세요.
+3. 앱에 서버를 연결하는 방법은 둘 중 하나:
+   - 앱의 **설정 → 게임 서버 주소**에 위 주소를 입력, 또는
+   - GitHub 저장소 **Settings → Secrets and variables → Actions → Variables**에 `SERVER_URL`을 추가 → 다음 빌드부터 주소가 앱에 들어갑니다.
+
+무료 플랜은 15분간 접속이 없으면 서버가 잠들어 첫 접속이 30초쯤 걸릴 수 있고, 무료 Postgres는 기간 제한이 있습니다. 계속 운영하려면 유료 플랜이나 다른 호스팅을 쓰세요.
+
+### 직접 APK 빌드
+Android SDK와 JDK 21이 있으면 `cd web && npm run android` → `web/android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## 구조
 

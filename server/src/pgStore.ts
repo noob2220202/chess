@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { seasonReset } from './glicko2.ts';
-import type { CardStatDelta, GameRecord, LeaderRow, Rating, RatingUpdate, Store, User } from './store.ts';
+import type { CardStatDelta, FriendLists, FriendRequestResult, GameRecord, LeaderRow, Rating, RatingUpdate, Store, User } from './store.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -153,6 +153,53 @@ export class PgStore implements Store {
   async cardStats(season: number) {
     const r = await this.pool.query('SELECT card_id, games, score FROM card_stats WHERE season = $1', [season]);
     return r.rows.map((x) => ({ cardId: x.card_id, games: x.games, score: x.score }));
+  }
+  async userById(id: number): Promise<User | null> {
+    const r = await this.pool.query('SELECT id, username, created_at FROM users WHERE id = $1', [id]);
+    const u = r.rows[0];
+    return u ? { id: u.id, username: u.username, createdAt: iso(u.created_at)! } : null;
+  }
+  async friendRequest(fromId: number, toId: number): Promise<FriendRequestResult> {
+    if (fromId === toId) return 'self';
+    const r = await this.pool.query(
+      'SELECT requester_id, status FROM friendships WHERE (requester_id = $1 AND addressee_id = $2) OR (requester_id = $2 AND addressee_id = $1)', [fromId, toId]);
+    const row = r.rows[0];
+    if (row?.status === 'accepted') return 'already-friends';
+    if (row && row.requester_id === fromId) return 'already-sent';
+    if (row) {
+      await this.pool.query("UPDATE friendships SET status = 'accepted' WHERE requester_id = $1 AND addressee_id = $2", [toId, fromId]);
+      return 'accepted';
+    }
+    await this.pool.query('INSERT INTO friendships (requester_id, addressee_id) VALUES ($1, $2)', [fromId, toId]);
+    return 'sent';
+  }
+  async respondFriend(userId: number, requesterId: number, accept: boolean) {
+    const r = accept
+      ? await this.pool.query("UPDATE friendships SET status = 'accepted' WHERE requester_id = $1 AND addressee_id = $2 AND status = 'pending'", [requesterId, userId])
+      : await this.pool.query("DELETE FROM friendships WHERE requester_id = $1 AND addressee_id = $2 AND status = 'pending'", [requesterId, userId]);
+    return (r.rowCount ?? 0) > 0;
+  }
+  async removeFriend(a: number, b: number) {
+    await this.pool.query('DELETE FROM friendships WHERE (requester_id = $1 AND addressee_id = $2) OR (requester_id = $2 AND addressee_id = $1)', [a, b]);
+  }
+  async friendLists(userId: number): Promise<FriendLists> {
+    const r = await this.pool.query(
+      `SELECT f.requester_id, f.addressee_id, f.status, u.id, u.username, u.created_at FROM friendships f
+       JOIN users u ON u.id = CASE WHEN f.requester_id = $1 THEN f.addressee_id ELSE f.requester_id END
+       WHERE f.requester_id = $1 OR f.addressee_id = $1 ORDER BY lower(u.username)`, [userId]);
+    const out: FriendLists = { friends: [], incoming: [], outgoing: [] };
+    for (const x of r.rows) {
+      const u = { id: x.id, username: x.username, createdAt: iso(x.created_at)! };
+      if (x.status === 'accepted') out.friends.push(u);
+      else if (x.addressee_id === userId) out.incoming.push(u);
+      else out.outgoing.push(u);
+    }
+    return out;
+  }
+  async areFriends(a: number, b: number) {
+    const r = await this.pool.query(
+      "SELECT 1 FROM friendships WHERE status = 'accepted' AND ((requester_id = $1 AND addressee_id = $2) OR (requester_id = $2 AND addressee_id = $1))", [a, b]);
+    return (r.rowCount ?? 0) > 0;
   }
   async close() { await this.pool.end(); }
 }

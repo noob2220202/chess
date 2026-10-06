@@ -1,7 +1,9 @@
 import { createRoot } from 'react-dom/client';
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import App from './App.tsx';
+import { setupNative } from './lib/native.ts';
 import { OnlineProvider } from './lib/online.tsx';
+import { isNative } from './lib/server.ts';
 import { RouterProvider } from './lib/router.tsx';
 import { SettingsProvider } from './lib/settings.tsx';
 import { ToastProvider } from './lib/toast.tsx';
@@ -20,6 +22,9 @@ createRoot(document.getElementById('root')!).render(
   </RouterProvider>,
 );
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+setupNative().catch(() => {});
+
+// The app shell already ships every file locally; a service worker only matters for the website.
+if ('serviceWorker' in navigator && import.meta.env.PROD && !isNative()) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
 }

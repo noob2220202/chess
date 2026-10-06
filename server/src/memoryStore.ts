@@ -1,5 +1,5 @@
 import { seasonReset } from './glicko2.ts';
-import type { CardStatDelta, GameRecord, LeaderRow, Rating, RatingUpdate, Store, User } from './store.ts';
+import type { CardStatDelta, FriendLists, FriendRequestResult, GameRecord, LeaderRow, Rating, RatingUpdate, Store, User } from './store.ts';
 
 /** In-memory store for tests and quick local runs without Postgres. */
 export class MemoryStore implements Store {
@@ -8,6 +8,7 @@ export class MemoryStore implements Store {
   ratings = new Map<string, Rating>();
   games = new Map<string, GameRecord>();
   cards = new Map<string, { games: number; score: number }>();
+  friendships: Array<{ from: number; to: number; status: 'pending' | 'accepted' }> = [];
 
   async createUser(username: string, passwordHash: string) {
     if (this.users.some((u) => u.username.toLowerCase() === username.toLowerCase())) return null;
@@ -66,5 +67,40 @@ export class MemoryStore implements Store {
   async cardStats(season: number) {
     return [...this.cards].filter(([k]) => k.startsWith(`${season}:`)).map(([k, v]) => ({ cardId: k.split(':')[1]!, ...v }));
   }
+  private pub(id: number): User | null {
+    const u = this.users.find((x) => x.id === id);
+    return u ? { id: u.id, username: u.username, createdAt: u.createdAt } : null;
+  }
+  async userById(id: number) { return this.pub(id); }
+  private pair(a: number, b: number) { return this.friendships.find((f) => (f.from === a && f.to === b) || (f.from === b && f.to === a)); }
+  async friendRequest(fromId: number, toId: number): Promise<FriendRequestResult> {
+    if (fromId === toId) return 'self';
+    const f = this.pair(fromId, toId);
+    if (f?.status === 'accepted') return 'already-friends';
+    if (f && f.from === fromId) return 'already-sent';
+    if (f) { f.status = 'accepted'; return 'accepted'; }
+    this.friendships.push({ from: fromId, to: toId, status: 'pending' });
+    return 'sent';
+  }
+  async respondFriend(userId: number, requesterId: number, accept: boolean) {
+    const i = this.friendships.findIndex((f) => f.from === requesterId && f.to === userId && f.status === 'pending');
+    if (i < 0) return false;
+    if (accept) this.friendships[i]!.status = 'accepted'; else this.friendships.splice(i, 1);
+    return true;
+  }
+  async removeFriend(a: number, b: number) { this.friendships = this.friendships.filter((f) => !((f.from === a && f.to === b) || (f.from === b && f.to === a))); }
+  async friendLists(userId: number): Promise<FriendLists> {
+    const out: FriendLists = { friends: [], incoming: [], outgoing: [] };
+    for (const f of this.friendships) {
+      if (f.from !== userId && f.to !== userId) continue;
+      const other = this.pub(f.from === userId ? f.to : f.from)!;
+      if (f.status === 'accepted') out.friends.push(other);
+      else if (f.to === userId) out.incoming.push(other);
+      else out.outgoing.push(other);
+    }
+    for (const k of ['friends', 'incoming', 'outgoing'] as const) out[k].sort((a, b) => a.username.localeCompare(b.username));
+    return out;
+  }
+  async areFriends(a: number, b: number) { return this.pair(a, b)?.status === 'accepted'; }
   async close() {}
 }

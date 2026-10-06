@@ -101,6 +101,83 @@ async function suite(name: string, makeStore: () => Promise<Store>) {
       await store.close();
     }
   });
+
+  test(`${name}: friends, challenges and invite codes`, async () => {
+    const store = await makeStore();
+    const app = createServer({ store, staticDir: null, matchIntervalMs: 50, log: () => {} });
+    await new Promise<void>((r) => app.server.listen(0, r));
+    const base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
+    const call = (p: string, token: string, body?: unknown) => fetch(base + p, body === undefined
+      ? { headers: { authorization: `Bearer ${token}` } }
+      : { method: 'POST', body: JSON.stringify(body), headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` } });
+    try {
+      const pre = await fetch(base + '/api/friends', { method: 'OPTIONS', headers: { origin: 'https://localhost' } });
+      assert.equal(pre.status, 204);
+      assert.equal(pre.headers.get('access-control-allow-origin'), 'https://localhost');
+
+      const suffix = Math.random().toString(36).slice(2, 7);
+      const names = [`ann_${suffix}`, `ben_${suffix}`, `cat_${suffix}`];
+      const tokens: string[] = [];
+      const ids: number[] = [];
+      for (const n of names) {
+        const j = await (await fetch(base + '/api/auth/register', { method: 'POST', body: JSON.stringify({ username: n, password: 'password123' }), headers: { 'content-type': 'application/json' } })).json();
+        tokens.push(j.token); ids.push(j.user.id);
+      }
+      const [ta, tb, tc] = tokens as [string, string, string];
+      assert.equal((await call('/api/friends', ta)).status, 200);
+      assert.equal((await call('/api/friends/request', ta, { username: 'nobody_here' })).status, 404);
+      assert.equal((await call('/api/friends/request', ta, { username: names[0] })).status, 400);
+      assert.equal((await (await call('/api/friends/request', ta, { username: names[1] })).json()).result, 'sent');
+      assert.equal((await call('/api/friends/request', ta, { username: names[1] })).status, 409);
+      const bl = await (await call('/api/friends', tb)).json();
+      assert.equal(bl.incoming[0].username, names[0]);
+      assert.equal((await call('/api/friends/respond', tb, { userId: ids[0], accept: true })).status, 200);
+      const al = await (await call('/api/friends', ta)).json();
+      assert.deepEqual(al.friends.map((f: any) => f.username), [names[1]]);
+      assert.equal(al.friends[0].online, false);
+
+      const wsUrl = base.replace('http', 'ws') + '/ws';
+      const [ca, cb, cc] = names.map(() => new Client(wsUrl)) as [Client, Client, Client];
+      await Promise.all([ca, cb, cc].map((c) => c.open()));
+      await Promise.all([ca, cb, cc].map(async (c, i) => { c.send({ type: 'auth', token: tokens[i] }); await c.next((m) => m.type === 'welcome'); }));
+
+      // Only friends can be challenged.
+      cc.send({ type: 'challenge', to: ids[0], mode: 'casual' });
+      assert.match((await cc.next((m) => m.type === 'error')).message, /친구/);
+
+      // Decline, then accept.
+      ca.send({ type: 'challenge', to: ids[1], mode: 'casual' });
+      let ch = (await cb.next((m) => m.type === 'challenge')).challenge;
+      assert.equal(ch.from.username, names[0]);
+      cb.send({ type: 'challenge-decline', id: ch.id });
+      assert.equal((await ca.next((m) => m.type === 'challenge-closed')).reason, 'declined');
+      ca.send({ type: 'challenge', to: ids[1], mode: 'rated' });
+      ch = (await cb.next((m) => m.type === 'challenge')).challenge;
+      cb.send({ type: 'challenge-accept', id: ch.id });
+      const [ga, gb] = await Promise.all([ca, cb].map((c) => c.next((m) => m.type === 'game')));
+      assert.equal(ga.game.id, gb.game.id);
+      assert.equal(ga.game.rated, true);
+      assert.notEqual(ga.game.you, gb.game.you);
+      // Busy players cannot be challenged.
+      ca.send({ type: 'resign', gameId: ga.game.id });
+      await ca.next((m) => m.type === 'game' && m.game.result);
+
+      // Invite code: anyone with the code can join.
+      ca.send({ type: 'invite', mode: 'casual' });
+      const inv = (await ca.next((m) => m.type === 'challenge-sent' && m.challenge.code)).challenge;
+      assert.match(inv.code, /^[A-Z2-9]{6}$/);
+      cc.send({ type: 'challenge-accept', code: 'ZZZZZZ' });
+      assert.match((await cc.next((m) => m.type === 'error')).message, /코드/);
+      cc.send({ type: 'challenge-accept', code: inv.code.toLowerCase() });
+      const gc = await cc.next((m) => m.type === 'game' && !m.game.result);
+      assert.equal(gc.game.rated, false);
+      assert.equal(gc.game.players[gc.game.you === 'w' ? 'b' : 'w'].username, names[0]);
+      for (const c of [ca, cb, cc]) c.close();
+    } finally {
+      await app.close();
+      await store.close();
+    }
+  });
 }
 
 await suite('memory', async () => new MemoryStore());

@@ -1,0 +1,90 @@
+name: Android APK
+
+# Builds an installable APK on every push and publishes it as the "app-latest" release,
+# so the newest build is always at:
+#   https://github.com/<owner>/<repo>/releases/tag/app-latest
+#
+# Set the repository variable SERVER_URL (Settings → Secrets and variables → Actions → Variables)
+# to your deployed server, e.g. https://augment-arena.onrender.com, to bake it into the app.
+# Without it the app still works offline (AI, tutorials, cards); the server address can be
+# entered later in the app's settings.
+
+on:
+  push:
+    paths-ignore: ['docs/**', '**/*.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            engine/package-lock.json
+            web/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install dependencies
+        run: npm --prefix engine ci && npm --prefix web ci
+
+      - name: Build web app
+        run: npm --prefix web run build
+        env:
+          VITE_SERVER_URL: ${{ vars.SERVER_URL }}
+
+      - name: Generate Android project
+        working-directory: web
+        run: node scripts/android-prepare.mjs "${{ github.run_number }}" "1.0.${{ github.run_number }}"
+
+      - name: Build APK
+        working-directory: web/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/augment-arena.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: augment-arena-apk
+          path: augment-arena.apk
+
+      - name: Publish "app-latest" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SERVER_URL: ${{ vars.SERVER_URL }}
+        run: |
+          gh release delete app-latest --yes --cleanup-tag || true
+          server_note="서버 주소: ${SERVER_URL:-아직 설정 안 됨 — 앱의 설정 → 게임 서버 주소에서 입력하세요}"
+          cat > notes.md <<EOF
+          ## 증강전 Android 최신 빌드 (#${{ github.run_number }})
+
+          **설치 방법:** 휴대폰에서 아래 \`augment-arena.apk\`를 눌러 내려받고 열기 → "출처를 알 수 없는 앱 설치"를 허용하세요.
+          새 빌드는 기존 앱 위에 그대로 덮어 설치돼요.
+
+          - 브랜치: \`${{ github.ref_name }}\` · 커밋: ${{ github.sha }}
+          - ${server_note}
+          - AI 대전, 튜토리얼, 카드 연습은 서버 없이도 바로 할 수 있어요.
+          EOF
+          gh release create app-latest augment-arena.apk \
+            --prerelease \
+            --target "${{ github.sha }}" \
+            --title "증강전 Android 최신 빌드 #${{ github.run_number }}" \
+            --notes-file notes.md

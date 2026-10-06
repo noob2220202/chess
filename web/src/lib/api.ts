@@ -1,3 +1,4 @@
+import { serverBase } from './server.ts';
 import { load, remove, save } from './storage.ts';
 
 const TOKEN = 'aa.token';
@@ -16,7 +17,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   const token = getToken();
   let res: Response;
   try {
-    res = await fetch(path, {
+    res = await fetch(serverBase() + path, {
       method: init.method ?? (init.body ? 'POST' : 'GET'),
       headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
       body: init.body ? JSON.stringify(init.body) : undefined,
