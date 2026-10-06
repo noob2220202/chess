@@ -12,10 +12,14 @@ function convertFirst(s: GameState, o: Color, type: 'B' | 'R', to: 'A' | 'C', pr
     if (p && p.color === o && p.type === type) { p.type = to; return; }
   }
 }
-const removeOwnPawnOnFile = (s: GameState, o: Color, f: number): void => {
-  const x = sq(f, o === 'w' ? 1 : 6);
-  const p = at(s, x);
-  if (p && p.color === o && p.type === 'P') destroy(s, x);
+/** Remove the own knight on its home square for file `f` (b or g), else the nearest own knight. */
+const absorbKnight = (s: GameState, o: Color, f: number): void => {
+  const home = sq(f, homeRank(o));
+  if (at(s, home)?.type === 'N' && at(s, home)?.color === o) return destroy(s, home);
+  for (let i = 0; i < 64; i++) {
+    const p = at(s, i);
+    if (p && p.color === o && p.type === 'N') return destroy(s, i);
+  }
 };
 
 register(
@@ -56,22 +60,24 @@ register(
     demo: { board: '4k3/8/8/2p5/8/4K3/8/8', text: 'c5 폰이 d4를 노리고 있어요. 그래도 킹을 d4로 옮겨보세요.', done: '폰은 근위대가 지키는 킹을 잡을 수 없어요.', goal: moved('e3', 'd4') },
   },
   {
-    id: 'archbishop', name: '대주교 서임', kind: 'passive', category: 'OPENING', stars: 4,
-    description: '획득 시 퀸 쪽 비숍이 대주교(비숍+나이트)가 되고, a파일 폰을 잃습니다.',
+    id: 'archbishop', name: '대주교 서임', kind: 'passive', category: 'OPENING', stars: 3.5,
+    description: '획득 시 퀸 쪽 비숍이 퀸 쪽 나이트를 흡수해 대주교(비숍+나이트)가 됩니다.',
+    detail: '흡수된 나이트는 보드에서 사라집니다. 나이트가 없으면 비숍만 대주교가 됩니다.',
     onAcquire: (s, o) => {
       convertFirst(s, o, 'B', 'A', [sq(2, homeRank(o))]);
-      removeOwnPawnOnFile(s, o, 0);
+      absorbKnight(s, o, 1);
     },
-    demo: { board: '4k3/8/8/8/8/3r4/P7/2B1K3', text: 'c1 비숍이 대주교가 되었어요. 나이트처럼 뛰어 d3의 룩을 잡아보세요.', done: '대주교는 비숍과 나이트의 움직임을 모두 가집니다.', goal: moved('c1', 'd3') },
+    demo: { board: '4k3/8/8/8/8/3r4/8/1NB1K3', text: 'b1 나이트를 흡수해 c1 비숍이 대주교가 되었어요. 나이트처럼 뛰어 d3의 룩을 잡아보세요.', done: '대주교는 비숍과 나이트의 움직임을 모두 가집니다.', goal: moved('c1', 'd3') },
   },
   {
-    id: 'chancellor', name: '재상 임명', kind: 'passive', category: 'OPENING', stars: 4,
-    description: '획득 시 킹 쪽 룩이 재상(룩+나이트)이 되고, h파일 폰을 잃습니다.',
+    id: 'chancellor', name: '재상 임명', kind: 'passive', category: 'OPENING', stars: 3.5,
+    description: '획득 시 킹 쪽 룩이 킹 쪽 나이트를 흡수해 재상(룩+나이트)이 됩니다.',
+    detail: '흡수된 나이트는 보드에서 사라집니다. 나이트가 없으면 룩만 재상이 됩니다.',
     onAcquire: (s, o) => {
       convertFirst(s, o, 'R', 'C', [sq(7, homeRank(o))]);
-      removeOwnPawnOnFile(s, o, 7);
+      absorbKnight(s, o, 6);
     },
-    demo: { board: '4k3/8/8/8/8/6r1/7P/4K2R', text: 'h1 룩이 재상이 되었어요. 나이트처럼 뛰어 g3의 룩을 잡아보세요.', done: '재상은 룩과 나이트의 움직임을 모두 가집니다.', goal: moved('h1', 'g3') },
+    demo: { board: '4k3/8/8/8/8/6r1/8/4K1NR', text: 'g1 나이트를 흡수해 h1 룩이 재상이 되었어요. 나이트처럼 뛰어 g3의 룩을 잡아보세요.', done: '재상은 룩과 나이트의 움직임을 모두 가집니다.', goal: moved('h1', 'g3') },
   },
   {
     id: 'outriders', name: '척후병', kind: 'passive', category: 'OPENING', stars: 3,

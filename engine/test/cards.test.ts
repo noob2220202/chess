@@ -149,5 +149,6 @@ test('passives that change setup on acquire', () => {
   s.cards.w.offer = ['archbishop'];
   pickCard(s, 'w', 'archbishop');
   assert.equal(s.board[P('c1')]?.type, 'A');
-  assert.equal(s.board[P('a2')], null);
+  assert.equal(s.board[P('b1')], null, 'queen-side knight absorbed');
+  assert.equal(s.board[P('a2')]?.type, 'P', 'no file is opened');
 });

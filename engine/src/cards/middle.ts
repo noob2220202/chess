@@ -192,7 +192,7 @@ register(
     demo: { board: '4k3/8/8/8/8/8/8/4K3', text: '지뢰를 상대 진영의 빈칸에 설치해 보세요.', done: '상대가 그 칸을 밟으면 기물이 파괴돼요.', goal: usedCard('mine') },
   },
   {
-    id: 'blink', name: '점멸', kind: 'active', category: 'MIDDLE', stars: 2.5,
+    id: 'blink', name: '점멸', kind: 'active', category: 'MIDDLE', stars: 3.5,
     description: '아군 마이너 기물 하나를 두 칸 이내(킹 걸음 기준)의 빈칸으로 순간이동시킵니다.',
     targets: [
       target('순간이동할 아군 마이너 기물', own(MINORS)),
@@ -203,9 +203,9 @@ register(
   },
   {
     id: 'disarm', name: '무장해제', kind: 'active', category: 'MIDDLE', stars: 2.5,
-    description: '킹이 아닌 상대 기물 하나가 4수 동안 기물을 잡을 수 없습니다. 이동은 가능합니다.',
+    description: '킹이 아닌 상대 기물 하나가 6수(상대 차례 3번) 동안 기물을 잡을 수 없습니다. 이동은 가능합니다.',
     targets: [target('무장해제할 상대 기물', enemy(NON_KING))],
-    activate: (s, _o, [x]) => setStatus(s, x!, 'disarmed', 4),
+    activate: (s, _o, [x]) => setStatus(s, x!, 'disarmed', 6),
     demo: { board: '4k3/8/8/8/8/8/2q5/3QK3', text: 'c2 퀸이 위협적이에요. 무장해제를 걸어보세요.', done: '무장해제된 기물은 당분간 아무것도 잡지 못해요.', goal: usedCard('disarm') },
   },
 );
