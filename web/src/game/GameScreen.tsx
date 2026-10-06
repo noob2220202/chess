@@ -27,6 +27,8 @@ export interface GameScreenProps {
   onCard: (id: CardId, sel: Square[]) => void;
   onMove: (m: Move) => void;
   status?: ReactNode;
+  /** Show status as a block above the board (tutorial coach) instead of a floating banner. */
+  statusInline?: boolean;
   /** Game actions (resign, draw, exit...). Buttons on desktop, menu sheet on mobile. */
   menu?: MenuItem[];
   overlay?: ReactNode;
@@ -81,30 +83,36 @@ function PlayerStrip({ color, info, state, onInspect }: { color: Color; info: Pl
 
 export function DraftSheet({ offer, round, onPick }: { offer: CardId[]; round: number; onPick: (id: CardId) => void }) {
   const [sel, setSel] = useState<CardId | null>(null);
-  const [idx, setIdx] = useState(0);
-  const row = useRef<HTMLDivElement>(null);
+  const mobile = useIsMobile();
   const cat = CARDS[offer[0]!]?.category ?? 'OPENING';
-  function onScroll() {
-    const el = row.current;
-    if (!el) return;
-    const kids = Array.from(el.children) as HTMLElement[];
-    const mid = el.scrollLeft + el.clientWidth / 2;
-    let best = 0;
-    kids.forEach((k, i) => { if (Math.abs(k.offsetLeft + k.offsetWidth / 2 - mid) < Math.abs(kids[best]!.offsetLeft + kids[best]!.offsetWidth / 2 - mid)) best = i; });
-    setIdx(best);
-  }
+  const d = sel ? CARDS[sel]! : null;
   return (
     <Sheet wide label="카드 드래프트">
       <div className="center">
         <div className="eyebrow">드래프트 {round + 1}/3 · {CATEGORY_LABEL[cat]}</div>
         <h2 style={{ marginTop: 4 }}>카드 한 장을 고르세요</h2>
-        <p className="muted" style={{ fontSize: 14, marginTop: 4 }}>{CATEGORY_HINT[cat]}</p>
+        {!mobile && <p className="muted" style={{ fontSize: 14, marginTop: 4 }}>{CATEGORY_HINT[cat]}</p>}
       </div>
-      <div className="draft-row" ref={row} onScroll={onScroll}>
+      <div className="draft-row">
         {offer.map((id) => <CardView key={id} def={CARDS[id]!} selected={sel === id} onClick={() => { setSel(id); haptic('tap'); }} />)}
       </div>
-      <div className="dots">{offer.map((id, i) => <i key={id} className={i === idx ? 'on' : ''} />)}</div>
-      {sel && CARDS[sel]!.detail && <p className="muted center" style={{ fontSize: 13.5, marginBottom: 12 }}>{CARDS[sel]!.detail}</p>}
+      {mobile ? (
+        <div className="draft-detail" aria-live="polite">
+          {d ? (
+            <div key={d.id} className="dd-in">
+              <div className="dd-head">
+                <b>{d.name}</b>
+                <span className="chip">{d.kind === 'active' ? '액티브' : '패시브'}</span>
+                <span className={`chip rar r${rarity(d.stars).tier}`}>{rarity(d.stars).label}</span>
+              </div>
+              <p>{d.description}</p>
+              {d.detail && <p className="muted">{d.detail}</p>}
+            </div>
+          ) : (
+            <p className="muted dd-empty">{CATEGORY_HINT[cat]}<br />카드를 눌러 설명을 확인하세요.</p>
+          )}
+        </div>
+      ) : sel && CARDS[sel]!.detail && <p className="muted center" style={{ fontSize: 13.5, marginBottom: 12 }}>{CARDS[sel]!.detail}</p>}
       <button className="btn primary lg block" disabled={!sel} onClick={() => sel && onPick(sel)}>
         {sel ? `${josa(`“${CARDS[sel]!.name}”`, '으로/로')} 결정` : '카드를 눌러 고르세요'}
       </button>
@@ -218,13 +226,18 @@ export function GameScreen(p: GameScreenProps) {
   useEffect(() => {
     if (!p.guide && !p.guideCard) return;
     const t = setTimeout(() => {
+      if (mobile) {
+        // The phone layout is pinned to the screen; only the card strip can scroll (sideways).
+        document.querySelector('.m-hand .hchip.guide')?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        return;
+      }
       const el = document.querySelector('.hchip.guide, .tcg.guide, .sq.guide');
       if (!el) return;
       const r = el.getBoundingClientRect();
       if (r.top < 60 || r.bottom > window.innerHeight - 80) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 350);
     return () => clearTimeout(t);
-  }, [p.guide, p.guideCard, liveIdx, target]);
+  }, [p.guide, p.guideCard, liveIdx, target, mobile]);
 
   const orientation: Color = flip ? (p.orientation === 'w' ? 'b' : 'w') : p.orientation;
   const options = useMemo(() => (target && canAct ? targetOptions(live, canAct, target.id, target.picked) : []), [target, live, canAct]);
@@ -332,18 +345,19 @@ export function GameScreen(p: GameScreenProps) {
 
   if (mobile) {
     return (
-      <div className="m-game">
-        {p.title !== undefined && (
-          <div className="m-top">
-            <button className="icon-btn" onClick={p.onBack ?? (() => history.length && window.history.back())} aria-label="뒤로"><ChevronLeft /></button>
-            <span className="title ellipsis">{p.title}</span>
-            <button className="icon-btn" onClick={openSettings} aria-label="설정"><SettingsIcon /></button>
-          </div>
-        )}
-        <div className="m-status">{statusNode}</div>
-        <PlayerStrip color={top} info={p.players[top]} state={state} onInspect={(id) => setSheet({ kind: 'card', id })} />
-        {board}
-        <PlayerStrip color={orientation} info={p.players[orientation]} state={state} onInspect={(id) => setSheet({ kind: 'card', id })} />
+      <div className={`m-game${p.statusInline ? ' coach-mode' : ''}`}>
+        <div className="m-top">
+          <button className="icon-btn" onClick={p.onBack ?? (() => history.length && window.history.back())} aria-label="뒤로"><ChevronLeft /></button>
+          <span className="title ellipsis">{p.title ?? ''}</span>
+          <button className="icon-btn" onClick={openSettings} aria-label="설정"><SettingsIcon /></button>
+          {!p.statusInline && statusNode && <div className="m-float">{statusNode}</div>}
+        </div>
+        {p.statusInline && <div className="m-status">{statusNode}</div>}
+        <div className="m-board">
+          <PlayerStrip color={top} info={p.players[top]} state={state} onInspect={(id) => setSheet({ kind: 'card', id })} />
+          {board}
+          <PlayerStrip color={orientation} info={p.players[orientation]} state={state} onInspect={(id) => setSheet({ kind: 'card', id })} />
+        </div>
         <div className="m-hand">
           {handCards.length === 0 && <span className="empty">아직 카드가 없어요. 내 0·10·20번째 수에 카드를 골라요.</span>}
           {handCards.map(([id, used]) => (

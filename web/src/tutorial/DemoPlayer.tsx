@@ -106,6 +106,7 @@ export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: 
         onCard={(id, sel) => act({ card: id, sel })}
         onMove={(move) => act({ move })}
         status={coach}
+        statusInline
         guide={guide}
         guideCard={guideCard}
         hideDraft

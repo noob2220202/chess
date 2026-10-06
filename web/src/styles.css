@@ -695,3 +695,66 @@ img, svg { display: block; }
   .list-row.friend { padding: 12px 12px 12px 14px; }
   .list-row.friend .btn.sm svg { display: none; }
 }
+
+/* ------------------------------------------------------------------ phone game: pinned layout
+   Everything is sized to the screen once; banners float over the header instead of pushing the
+   board, so nothing moves while you play. */
+.m-game { position: fixed; inset: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); padding-bottom: calc(64px + var(--safe-b)); }
+.m-top { position: relative; flex: none; }
+.m-float { position: absolute; left: 8px; right: 8px; top: calc(3px + var(--safe-t)); z-index: 40; border-radius: 12px; background: var(--bg-2); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: float-in 0.18s ease-out; }
+.m-float > * + * { margin-top: 6px; }
+.m-float .notice { margin: 0; padding: 9px 12px; font-size: 14px; border-radius: 12px; min-height: 44px; }
+@keyframes float-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+.m-status { flex: none; padding: 0 12px 8px; }
+.m-game.coach-mode .m-status { min-height: 92px; }
+.m-game .player-strip { flex: none; height: 50px; min-height: 0; }
+.m-game .player-strip .who { overflow: hidden; }
+.m-game .player-strip .nm { flex-wrap: nowrap; }
+.m-board { flex: 1 1 auto; min-height: 0; container-type: size; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.m-board > .player-strip { width: min(100cqw, 100cqh - 100px); }
+.m-board .board-wrap { flex: none; width: min(100cqw, 100cqh - 100px); }
+.m-hand { flex: none; height: 58px; padding: 0 12px; align-items: center; }
+.m-hand .hchip { flex: none; }
+.m-hand .empty { padding: 0 2px; }
+
+/* ------------------------------------------------------------------ draft: three cards at once */
+@media (max-width: 760px) {
+  .draft-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0 12px; padding: 4px 0 0; overflow: visible; }
+  .draft-row .tcg { flex: none; aspect-ratio: 5 / 6.2; border-radius: 11px; }
+  .draft-row .tcg .t-text, .draft-row .tcg .t-type, .draft-row .tcg .gem { display: none; }
+  .draft-row .tcg .t-head { padding: 1cqw 1cqw 3cqw; }
+  .draft-row .tcg .t-name { font-size: 12cqw; text-align: center; white-space: normal; word-break: keep-all; line-height: 1.2; min-height: 2.4em; display: flex; align-items: center; justify-content: center; }
+  .draft-row .tcg .t-art { flex: 1; }
+  .draft-row .tcg.selected { transform: translateY(-5px); }
+  .dots { display: none; }
+  .draft-detail { min-height: 128px; margin-bottom: 12px; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); }
+  .draft-detail .dd-in { animation: dd-in 0.16s ease-out; }
+  .draft-detail .dd-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .draft-detail .dd-head b { font-size: 17px; font-weight: 850; margin-right: 2px; }
+  .draft-detail p { font-size: 14.5px; line-height: 1.55; word-break: keep-all; }
+  .draft-detail p.muted { font-size: 13.5px; margin-top: 6px; }
+  .draft-detail .dd-empty { text-align: center; padding-top: 22px; }
+  .chip.rar.r2 { background: var(--info-soft); color: var(--info); }
+  .chip.rar.r3 { background: rgba(169, 144, 245, 0.18); color: #b9a3ff; }
+  .chip.rar.r4 { background: var(--accent-soft); color: var(--accent); }
+  /* Blur over a live board is the main source of jank on phones; use a flat scrim instead. */
+  .backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(6, 7, 8, 0.7); }
+  .m-actions { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--bg-2); }
+  .modal, .modal.wide { will-change: transform; }
+}
+@keyframes dd-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Tutorial on phones: the practice opponent never moves, so give its row to the board. */
+.m-game.coach-mode .m-board > .player-strip:first-child { display: none; }
+.m-game.coach-mode .m-board > .player-strip, .m-game.coach-mode .m-board .board-wrap { width: min(100cqw, 100cqh - 50px); }
+.m-game.coach-mode .m-hand:has(.empty) { display: none; }
+.m-game.coach-mode .m-status { min-height: 0; }
+@media (max-height: 760px) {
+  .m-game .m-top { min-height: 44px; padding-top: calc(2px + var(--safe-t)); }
+  .m-game.coach-mode .m-status .coach { padding: 10px 12px; gap: 10px; }
+  .m-game.coach-mode .m-status .coach .face { display: none; }
+  .m-game.coach-mode .m-status .coach p { font-size: 14px; line-height: 1.5; }
+  .m-game.coach-mode .m-status .coach .step-hint { font-size: 13px; margin-top: 4px; }
+  .m-game .player-strip { height: 44px; }
+  .m-hand { height: 52px; }
+}
