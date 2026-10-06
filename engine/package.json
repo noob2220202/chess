@@ -1,0 +1,16 @@
+{
+  "name": "augment-chess-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure-TypeScript rules engine for an augment chess game (king-capture win, card drafting).",
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\"",
+    "typecheck": "tsc -p .",
+    "sim": "node src/sim.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
