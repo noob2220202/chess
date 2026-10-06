@@ -26,6 +26,18 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
 
+# Make sure the Docker daemon is running (the install script does not always start it).
+if ! $SUDO docker info >/dev/null 2>&1; then
+  echo "▶ Docker 서비스 시작 중…"
+  $SUDO systemctl enable --now docker >/dev/null 2>&1 || $SUDO service docker start >/dev/null 2>&1 || true
+  for i in $(seq 1 20); do $SUDO docker info >/dev/null 2>&1 && break; sleep 1; done
+  if ! $SUDO docker info >/dev/null 2>&1; then
+    echo "⚠ Docker 서비스가 켜지지 않아요. 아래 명령 결과를 확인해 주세요:"
+    echo "   systemctl status docker --no-pager ; journalctl -u docker -n 30 --no-pager"
+    exit 1
+  fi
+fi
+
 if [ ! -f .env ]; then
   # The app is built against web/.env.production; use the same port when it is set.
   BAKED_PORT=$(grep -s '^VITE_SERVER_URL=' ../web/.env.production | sed -nE 's#.*:([0-9]+)/?$#\1#p' || true)
