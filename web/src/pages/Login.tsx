@@ -3,7 +3,6 @@ import { api, type PublicRating, type User } from '../lib/api.ts';
 import { useOnline } from '../lib/online.tsx';
 import { navigate } from '../lib/router.tsx';
 import { hasServer } from '../lib/server.ts';
-import { useSettings } from '../lib/settings.tsx';
 
 export function AuthForm({ onDone }: { onDone?: () => void }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -12,14 +11,12 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { signIn } = useOnline();
-  const { open } = useSettings();
 
   if (!hasServer()) {
     return (
-      <div className="surface pad stack" style={{ gap: 10 }}>
-        <b>게임 서버가 아직 연결되지 않았어요</b>
-        <p className="muted" style={{ fontSize: 14 }}>설정에서 게임 서버 주소를 입력하면 온라인 대전과 친구 기능을 쓸 수 있어요. AI 대전, 튜토리얼, 카드 연습은 지금 바로 할 수 있어요.</p>
-        <button className="btn primary block" onClick={open}>서버 주소 입력하기</button>
+      <div className="surface pad stack" style={{ gap: 8 }}>
+        <b>온라인 서버가 아직 준비되지 않았어요</b>
+        <p className="muted" style={{ fontSize: 14 }}>AI 대전, 튜토리얼, 카드 연습은 지금 바로 할 수 있어요.</p>
       </div>
     );
   }

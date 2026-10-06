@@ -13,6 +13,9 @@ SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
 if [ ! -f .env ]; then
   IP=$(curl -4 -fsS https://api.ipify.org || curl -4 -fsS https://ifconfig.me)
   DEFAULT_DOMAIN="$(echo "$IP" | tr . -).sslip.io"
+  # The app is built against web/.env.production; use the same domain when it is set.
+  BAKED=$(grep -s '^VITE_SERVER_URL=' ../web/.env.production | cut -d= -f2- | sed -E 's#^https?://##; s#/.*$##' || true)
+  DOMAIN=${DOMAIN:-$BAKED}
   if [ -z "${DOMAIN:-}" ]; then
     read -rp "도메인 (없으면 그냥 엔터 → ${DEFAULT_DOMAIN}): " DOMAIN </dev/tty || true
   fi

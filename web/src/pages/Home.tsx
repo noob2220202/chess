@@ -6,6 +6,7 @@ import { CardView } from '../game/CardView.tsx';
 import { api } from '../lib/api.ts';
 import { useOnline } from '../lib/online.tsx';
 import { useInstall } from '../lib/pwa.ts';
+import { isNative } from '../lib/server.ts';
 import { Link, navigate } from '../lib/router.tsx';
 import { getProgress, load, save } from '../lib/storage.ts';
 import { LESSONS } from '../tutorial/lessons.ts';
@@ -21,7 +22,21 @@ function dayIndex() {
 function InstallRow() {
   const { mode, install } = useInstall();
   const [hidden, setHidden] = useState(() => load('aa.install.hidden', false));
-  if (!mode || hidden) return null;
+  if (isNative() || hidden) return null;
+  if (/Android/i.test(navigator.userAgent)) {
+    return (
+      <div className="install-bar">
+        <img src="/icon-192.png" alt="" />
+        <div className="grow">
+          <b style={{ display: 'block' }}>Android 앱 받기</b>
+          <span className="muted" style={{ fontSize: 13 }}>APK를 내려받아 설치하면 바로 이 서버에 연결돼요</span>
+        </div>
+        <a className="btn sm primary" style={{ marginBottom: 0 }} href="/download"><Download />받기</a>
+        <button className="icon-btn" aria-label="닫기" onClick={() => { save('aa.install.hidden', true); setHidden(true); }}><X /></button>
+      </div>
+    );
+  }
+  if (!mode) return null;
   return (
     <div className="install-bar">
       <img src="/icon-192.png" alt="" />

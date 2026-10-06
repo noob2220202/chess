@@ -11,6 +11,8 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL ?? '',
   staticDir: process.env.STATIC_DIR ?? path.resolve(here, '../../web/dist'),
   season: Number(process.env.SEASON ?? 1),
+  /** Where /download sends people for the Android app. */
+  apkUrl: process.env.APK_URL ?? 'https://github.com/noob2220202/chess/releases/download/app-latest/augment-arena.apk',
   sessionDays: 60,
   /** Ply count below which an unmoved player aborts the game instead of losing. */
   abortMs: Number(process.env.ABORT_MS ?? 30_000),

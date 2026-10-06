@@ -348,6 +348,11 @@ export function createServer(opts: ServerOptions) {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     try {
+      if (url.pathname === '/download' || url.pathname === '/app.apk') {
+        res.writeHead(302, { location: config.apkUrl, 'cache-control': 'no-store' });
+        res.end();
+        return;
+      }
       if (url.pathname.startsWith('/api/')) {
         // The mobile app (https://localhost) and other front-ends call the API cross-origin.
         // Auth uses bearer tokens, not cookies, so allowing any origin is safe.

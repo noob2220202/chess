@@ -1,33 +1,16 @@
-import { load, remove, save } from './storage.ts';
-
-const KEY = 'aa.server';
-
 /** True inside the Android/iOS app shell (Capacitor). */
 export const isNative = (): boolean => !!(window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
 
-function clean(url: string): string {
-  return url.trim().replace(/\/+$/, '');
-}
-
 /**
- * Base URL of the game server. Empty string means "same origin" (the web build served by the server itself).
- * Order: user override in settings → VITE_SERVER_URL baked in at build time → same origin.
+ * Base URL of the game server, baked in at build time from web/.env.production (VITE_SERVER_URL).
+ * The website served by the server itself talks to its own origin.
  */
 export function serverBase(): string {
-  const custom = load<string | null>(KEY, null);
-  if (custom) return clean(custom);
-  return clean(import.meta.env.VITE_SERVER_URL ?? '');
+  if (!isNative()) return '';
+  return (import.meta.env.VITE_SERVER_URL ?? '').trim().replace(/\/+$/, '');
 }
 
-export function customServer(): string { return load<string | null>(KEY, null) ?? ''; }
-
-export function setCustomServer(url: string): void {
-  const v = clean(url);
-  if (v) save(KEY, /^https?:\/\//.test(v) ? v : `https://${v}`);
-  else remove(KEY);
-}
-
-/** True when there is a server to talk to (always on the web; the app needs a configured URL). */
+/** True when there is a server to talk to (always on the web; the app needs a built-in address). */
 export function hasServer(): boolean {
   return serverBase() !== '' || !isNative();
 }
