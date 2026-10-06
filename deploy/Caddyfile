@@ -1,6 +1,0 @@
-# Caddy fetches and renews the HTTPS certificate for $DOMAIN by itself.
-# WebSocket upgrades on /ws pass through reverse_proxy as-is.
-{$DOMAIN} {
-	encode zstd gzip
-	reverse_proxy app:8080
-}

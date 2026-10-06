@@ -22,16 +22,19 @@
 APK는 `.github/workflows/android.yml`이 푸시할 때마다 새로 만들고, 같은 서명 키를 써서 기존 앱 위에 덮어 설치됩니다. (스토어 배포용이 아닌 테스트용 서명입니다. Play 스토어에 올릴 때는 별도 릴리스 키를 쓰세요.)
 
 ### 내 VPS에 서버 띄우기 (추천)
-Ubuntu/Debian VPS에 SSH로 접속해서:
-```bash
-git clone -b ccr-992edca6-58ft50 https://github.com/noob2220202/chess.git
-cd chess && ./deploy/install.sh
-```
-Docker 설치, DB 비밀번호 생성, HTTPS 인증서(Caddy)까지 자동으로 하고 마지막에 서버 주소를 알려 줍니다. 도메인이 없으면 엔터만 누르면 `IP.sslip.io` 주소로 HTTPS가 붙습니다. 클라우드 방화벽(보안 그룹)에서 **80, 443 포트**를 열어 두세요.
+1. `web/.env.production`에 서버 주소를 적어 둡니다 (APK에 이 주소가 들어갑니다):
+   `VITE_SERVER_URL=http://<VPS 공인 IP>:5555`
+2. VPS에 SSH로 접속해서:
+   ```bash
+   git clone -b ccr-992edca6-58ft50 https://github.com/noob2220202/chess.git
+   cd chess && ./deploy/install.sh
+   ```
+   Docker 설치, DB(Postgres) 생성과 비밀번호, 서버 실행까지 자동입니다. 5555 포트 하나만 씁니다 (80/443 불필요).
+3. VPS 업체 방화벽(보안 그룹)에서 **5555/tcp**를 열어 둡니다.
+4. 휴대폰에서 `http://<IP>:5555/download`로 앱을 받습니다.
 
-- 업데이트: `./deploy/update.sh` (계정·레이팅 유지)
-- 백업: `./deploy/backup.sh` → `deploy/backups/`
-- 로그: `sudo docker compose -f deploy/docker-compose.yml logs -f app`
+- 업데이트: `./deploy/update.sh` (계정·레이팅 유지) · 백업: `./deploy/backup.sh` · 로그: `sudo docker compose -f deploy/docker-compose.yml logs -f app`
+- HTTPS 없이 평문 HTTP로 통신합니다. 지인끼리 쓰기엔 충분하지만, 공개 운영하려면 도메인을 연결하고 기존 웹서버(nginx 등)에서 HTTPS로 프록시하세요.
 
 ### Render에 서버 띄우기 (VPS가 없을 때, 무료)
 1. [Render](https://render.com)에 가입 → **New → Blueprint** → 이 저장소 선택. `render.yaml`대로 게임 서버와 Postgres가 함께 만들어집니다.

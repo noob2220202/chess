@@ -2,9 +2,18 @@
   "appId": "com.augmentarena.app",
   "appName": "증강전",
   "webDir": "dist",
-  "server": { "androidScheme": "https" },
-  "android": { "backgroundColor": "#131416" },
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "backgroundColor": "#131416"
+  },
   "plugins": {
-    "StatusBar": { "backgroundColor": "#131416", "style": "DARK", "overlaysWebView": false }
+    "StatusBar": {
+      "backgroundColor": "#131416",
+      "style": "DARK",
+      "overlaysWebView": false
+    }
   }
 }

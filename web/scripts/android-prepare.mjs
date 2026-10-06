@@ -27,6 +27,10 @@ if (!manifest.includes('android.permission.VIBRATE')) edit('app/src/main/Android
   '<uses-permission android:name="android.permission.INTERNET" />',
   '<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.VIBRATE" />'));
 
+// The game server runs on plain HTTP (http://<vps-ip>:5555), so allow cleartext traffic.
+const manifest2 = fs.readFileSync(path.join(root, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+if (!manifest2.includes('usesCleartextTraffic')) edit('app/src/main/AndroidManifest.xml', (s) => s.replace('<application', '<application\n        android:usesCleartextTraffic="true"'));
+
 // Stable version numbers and a committed debug key, so each new build installs over the previous one.
 edit('app/build.gradle', (s) => s
   .replace(/versionCode \d+/, `versionCode ${versionCode}`)

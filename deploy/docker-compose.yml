@@ -1,4 +1,4 @@
-# Production stack for a VPS: Postgres + game server + Caddy (automatic HTTPS).
+# Production stack for a VPS: Postgres + game server on one port (default 5555, plain HTTP).
 # Usage: ./deploy/install.sh   (first time)   ·   ./deploy/update.sh   (after git pull)
 services:
   db:
@@ -21,30 +21,12 @@ services:
       DATABASE_URL: postgres://chess:${POSTGRES_PASSWORD}@db:5432/chess
       SEASON: ${SEASON:-1}
       PORT: 8080
-    expose:
-      - "8080"
+    ports:
+      - "${PUBLIC_PORT:-5555}:8080"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
 
-  caddy:
-    image: caddy:2-alpine
-    environment:
-      DOMAIN: ${DOMAIN:?set DOMAIN in deploy/.env}
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - app
-    restart: unless-stopped
-
 volumes:
   pgdata:
-  caddy_data:
-  caddy_config:
