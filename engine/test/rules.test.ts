@@ -96,3 +96,25 @@ test('threefold repetition and quiet-move limit draw', () => {
   applyMove(q, mv('g1', 'f3'));
   assert.equal(q.endReason, 'quiet-limit');
 });
+
+test('short algebraic notation', async () => {
+  const { notate } = await import('../src/index.ts');
+  const s = chess();
+  assert.deepEqual(notate(s, mv('g1', 'f3')), { piece: 'N', text: 'f3' });
+  assert.deepEqual(notate(s, mv('e2', 'e4')), { piece: 'P', text: 'e4' });
+  const t = chess('4k3/8/8/3p4/4P3/8/8/R3K2R');
+  assert.deepEqual(notate(t, mv('e4', 'd5')), { piece: 'P', text: 'exd5' });
+  assert.deepEqual(notate(t, mv('e1', 'g1', { castle: 'K' })), { piece: null, text: 'O-O' });
+  const r = chess('4k3/8/8/8/8/8/4K3/R6R');
+  assert.deepEqual(notate(r, mv('a1', 'd1')), { piece: 'R', text: 'ad1' });
+  const k = chess('4k3/8/8/8/4R3/8/8/4K3');
+  assert.deepEqual(notate(k, mv('e4', 'e8')), { piece: 'R', text: 'xe8#' });
+});
+
+test('demo solver returns the shortest plan', async () => {
+  const { demoState, solveDemo, CARDS } = await import('../src/index.ts');
+  const plan = solveDemo(demoState('conscript'), CARDS['conscript']!.demo.goal)!;
+  assert.equal(plan.length, 2);
+  assert.ok('card' in plan[0]! && plan[0].card === 'conscript');
+  assert.ok('move' in plan[1]!);
+});

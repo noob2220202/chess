@@ -13,7 +13,7 @@ export function LearnIndex() {
   const cardIds = Object.keys(CARDS);
   const doneCards = cardIds.filter((id) => prog.demos.includes(id)).length;
   return (
-    <div className="main" style={{ maxWidth: 820 }}>
+    <div className="main narrow">
       <div className="page-head">
         <div>
           <div className="eyebrow">튜토리얼</div>
@@ -29,7 +29,7 @@ export function LearnIndex() {
       </div>
       <div className="lesson-list">
         {LESSONS.map((l, i) => (
-          <Link key={l.id} to={`/learn/${l.id}`} className={`lesson-item${prog.lessons.includes(l.id) ? ' done' : ''}`}>
+          <Link key={l.id} to={`/learn/${l.id}`} className={`lesson-item${prog.lessons.includes(l.id) ? ' done' : ''}${LESSONS.find((x) => !prog.lessons.includes(x.id))?.id === l.id ? ' next' : ''}`}>
             <span className="num">{prog.lessons.includes(l.id) ? '✓' : i + 1}</span>
             <div className="grow"><b>{l.title}</b><span>{l.summary}</span></div>
             <span style={{ fontWeight: 900 }}>→</span>
@@ -78,17 +78,17 @@ export function LessonPage({ id }: { id: string }) {
   const nav = (
     <div className="row" style={{ justifyContent: 'space-between' }}>
       <button className="btn sm ghost" disabled={i === 0} onClick={() => { setI(i - 1); setStepDone(false); setPicked(null); }}>이전</button>
-      <button className={`btn ${canNext ? 'primary' : ''}`} disabled={!canNext} onClick={next}>{last ? '레슨 완료' : '다음'}</button>
+      <button className={`btn ${canNext ? 'primary' : ''}${canNext && (step.goal || step.draft) ? ' guide' : ''}`} disabled={!canNext} onClick={next}>{last ? '레슨 완료 →' : '다음 →'}</button>
     </div>
   );
 
   return (
-    <div className={`main${step.board ? ' wide' : ''}`} style={step.board ? undefined : { maxWidth: 720 }}>
+    <div className={`main${step.board ? ' wide tight' : ' narrow'}`}>
       <div className="row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
         <Link to="/learn" className="btn sm ghost">← 레슨 목록</Link>
         <div className="grow">
           <div className="eyebrow">레슨 {li + 1} · {lesson.title}</div>
-          <h2 style={{ fontSize: 24 }}>{step.title}</h2>
+          <h2 style={{ fontSize: 'clamp(19px, 2.4vw, 24px)' }}>{step.title}</h2>
         </div>
         <span className="chip">{i + 1} / {lesson.steps.length}</span>
       </div>
@@ -97,7 +97,7 @@ export function LessonPage({ id }: { id: string }) {
       {step.board ? (
         <DemoPlayer
           key={`${lesson.id}-${i}`}
-          spec={{ build: () => buildStep(step), text: step.text, done: step.done ?? '좋아요!', goal: step.goal ?? (() => false), hints: step.hints }}
+          spec={{ build: () => buildStep(step), text: step.text, done: step.done ?? '좋아요!', goal: step.goal ?? (() => false) }}
           onComplete={() => setStepDone(true)}
           footer={() => nav}
         />

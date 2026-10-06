@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Color, Square } from '@engine';
-import { describeCard, describeMove, describePick } from '../game/describe.ts';
+import type { Color } from '@engine';
 import { GameScreen, REASON_TEXT, ResultModal } from '../game/GameScreen.tsx';
+import { cardEntry, moveEntry, pickEntry, startEntry, type HistEntry } from '../game/history.ts';
 import { useOnline, type GameView } from '../lib/online.tsx';
 import { Link } from '../lib/router.tsx';
 import { useToast } from '../lib/toast.tsx';
@@ -15,8 +15,8 @@ export default function Online() {
 
   if (!o.user) {
     return (
-      <div className="main" style={{ maxWidth: 460 }}>
-        <div className="page-head"><div><div className="eyebrow">온라인</div><h1>레이팅전</h1><p>로그인하면 바로 매칭을 시작할 수 있어요.</p></div></div>
+      <div className="main" style={{ maxWidth: 440 }}>
+        <div className="page-head"><div><div className="eyebrow">온라인 대전</div><h1>로그인이 필요해요</h1><p>로그인하면 바로 상대를 찾을 수 있어요.</p></div></div>
         {o.status === 'connecting' ? <div className="spinner" /> : <AuthForm />}
       </div>
     );
@@ -32,69 +32,71 @@ function Lobby() {
   const r = o.rating;
   const waiting = o.queue ? Math.max(0, Math.floor((now - o.queue.since) / 1000)) : 0;
   return (
-    <div className="main" style={{ maxWidth: 820 }}>
+    <div className="main" style={{ maxWidth: 860 }}>
       <div className="page-head">
-        <div><div className="eyebrow">온라인 · 시즌 {o.season}</div><h1>대전 로비</h1><p>{o.status === 'online' ? '서버에 연결됨' : o.status === 'offline' ? '연결이 끊겨 다시 연결하는 중…' : '연결 중…'}</p></div>
+        <div>
+          <div className="eyebrow">온라인 대전 · 시즌 {o.season}</div>
+          <h1>상대 찾기</h1>
+          <p>{o.status === 'online' ? '서버에 연결되어 있어요.' : o.status === 'offline' ? '연결이 끊겨서 다시 연결하는 중이에요…' : '서버에 연결하는 중이에요…'}</p>
+        </div>
         <Link to={`/u/${o.user!.username}`} className="btn sm">내 프로필</Link>
       </div>
       {r && (
-        <div className="stat-grid" style={{ marginBottom: 22 }}>
-          <div className="stat"><div className="v">{r.rating}{r.provisional ? '?' : ''}</div><div className="k">레이팅{r.provisional ? ` · 배치 ${r.games}/10` : ` · ±${r.rd}`}</div></div>
-          <div className="stat"><div className="v">{r.games}</div><div className="k">레이팅전</div></div>
-          <div className="stat"><div className="v">{r.wins}-{r.draws}-{r.losses}</div><div className="k">승-무-패</div></div>
+        <div className="stat-grid" style={{ marginBottom: 20 }}>
+          <div className="stat"><div className="v">{r.rating}{r.provisional ? '?' : ''}</div><div className="k">{r.provisional ? `배치 중 (${r.games}/10판)` : `레이팅 · 오차 ±${r.rd}`}</div></div>
+          <div className="stat"><div className="v">{r.games}</div><div className="k">레이팅전 판수</div></div>
+          <div className="stat"><div className="v">{r.wins}·{r.draws}·{r.losses}</div><div className="k">승 · 무 · 패</div></div>
           <div className="stat"><div className="v">{r.peak}</div><div className="k">최고 레이팅</div></div>
         </div>
       )}
       {o.queue ? (
         <div className="panel pad center">
           <div className="queue-pulse"><img src="/pieces/bN.svg" alt="" /></div>
-          <h2>{o.queue.mode === 'rated' ? '레이팅전' : '일반전'} 상대를 찾는 중</h2>
+          <h2>{o.queue.mode === 'rated' ? '레이팅전' : '일반전'} 상대를 찾고 있어요</h2>
           <p className="muted mono" style={{ margin: '6px 0 18px' }}>{Math.floor(waiting / 60)}:{String(waiting % 60).padStart(2, '0')}</p>
           <button className="btn" onClick={o.leaveQueue}>취소</button>
         </div>
       ) : (
-        <div className="mode-grid">
-          <button className="mode-card" onClick={() => o.joinQueue('rated')} disabled={o.status !== 'online'}>
-            <span className="chip amber" style={{ alignSelf: 'flex-start' }}>레이팅</span>
-            <h3>레이팅전</h3>
-            <p>10분 + 5초 · 미러 드래프트 · 비슷한 실력과 매칭</p>
-            <span className="go">→</span>
+        <div className="quick-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+          <button className="quick feature" style={{ minHeight: 132 }} onClick={() => o.joinQueue('rated')} disabled={o.status !== 'online'}>
+            <span className="tc">10+5</span><span className="lbl">레이팅전 · 같은 카드로 겨루기</span>
           </button>
-          <button className="mode-card" onClick={() => o.joinQueue('casual')} disabled={o.status !== 'online'}>
-            <span className="chip muted" style={{ alignSelf: 'flex-start' }}>친선</span>
-            <h3>일반전</h3>
-            <p>5분 + 3초 · 개별 드래프트 · 레이팅 변동 없음</p>
-            <span className="go">→</span>
+          <button className="quick" style={{ minHeight: 132 }} onClick={() => o.joinQueue('casual')} disabled={o.status !== 'online'}>
+            <span className="tc">5+3</span><span className="lbl">일반전 · 레이팅 변동 없음</span>
           </button>
         </div>
       )}
-      <p className="muted" style={{ marginTop: 18, fontSize: 14 }}>처음이라면 <Link to="/learn/ranked">레이팅전 안내</Link>를 먼저 읽어보세요.</p>
+      <p className="muted" style={{ marginTop: 18, fontSize: 14 }}>처음이라면 <Link to="/learn/ranked">레이팅전 안내</Link>를 먼저 읽어 보세요.</p>
     </div>
   );
+}
+
+/** Accumulate a history from successive server views. */
+function useServerHistory(g: GameView): HistEntry[] {
+  const [hist, setHist] = useState<HistEntry[]>(() => [startEntry(g.state)]);
+  const lastKey = useRef<string>(JSON.stringify(g.lastAction));
+  useEffect(() => {
+    const a = g.lastAction;
+    const key = JSON.stringify(a);
+    setHist((h) => {
+      const prev = h[h.length - 1]!;
+      if (!a || key === lastKey.current) return [...h.slice(0, -1), { ...prev, state: g.state }];
+      lastKey.current = key;
+      const entry = a.t === 'move' && a.move ? moveEntry({ ...prev.state, turn: a.c }, a.move, g.state)
+        : a.t === 'card' ? cardEntry(a.c, a.id!, g.state, prev.last)
+          : pickEntry(a.c, a.id!, g.state, prev.last);
+      return [...h, entry];
+    });
+  }, [g]);
+  return hist;
 }
 
 function OnlineGame() {
   const o = useOnline();
   const g = o.game!;
+  const hist = useServerHistory(g);
   const [, setTick] = useState(0);
-  const [log, setLog] = useState<string[]>([]);
-  const lastKey = useRef<string>('');
-  const prevState = useRef(g.state);
   useEffect(() => { const t = setInterval(() => setTick((x) => x + 1), 200); return () => clearInterval(t); }, []);
-
-  // Build a readable log from consecutive server updates.
-  useEffect(() => {
-    const a = g.lastAction;
-    if (!a) { prevState.current = g.state; return; }
-    const key = JSON.stringify(a);
-    if (key !== lastKey.current) {
-      lastKey.current = key;
-      const before = prevState.current;
-      const line = a.t === 'pick' ? describePick(a.c, a.id!) : a.t === 'card' ? describeCard(a.c, a.id!, (a as { sel?: Square[] }).sel ?? []) : describeMove({ ...before, turn: a.c }, a.move!);
-      setLog((l) => [...l, a.t === 'pick' && a.c !== g.you ? `${a.c === 'w' ? '백' : '흑'}: 카드 선택` : line]);
-    }
-    prevState.current = g.state;
-  }, [g]);
 
   const you = g.you ?? 'w';
   const opp: Color = you === 'w' ? 'b' : 'w';
@@ -103,13 +105,7 @@ function OnlineGame() {
   const clock = (c: Color) => (running === c ? g.clocks[c] - (serverNow - g.turnStartedAt) : g.clocks[c]);
   const actor = !g.result && g.state.turn === you ? you : null;
   const send = (m: Record<string, unknown>) => o.send({ ...m, gameId: g.id });
-
-  const info = (c: Color) => ({
-    name: g.players[c].username,
-    sub: `${c === 'w' ? '백' : '흑'} · ${g.players[c].rating}${g.players[c].provisional ? '?' : ''}`,
-    clockMs: clock(c),
-    running: running === c,
-  });
+  const info = (c: Color) => ({ name: g.players[c].username, sub: `${g.players[c].rating}${g.players[c].provisional ? '?' : ''}`, clockMs: clock(c), running: running === c });
 
   let status: React.ReactNode;
   if (g.result) status = null;
@@ -117,9 +113,14 @@ function OnlineGame() {
   else if (g.drawOffer === opp) status = (
     <div className="status-line info row"><span className="grow">상대가 무승부를 제안했어요.</span>
       <button className="btn sm" onClick={() => send({ type: 'draw', action: 'decline' })}>거절</button>
-      <button className="btn sm teal" onClick={() => send({ type: 'draw', action: 'accept' })}>수락</button></div>
+      <button className="btn sm good" onClick={() => send({ type: 'draw', action: 'accept' })}>수락</button></div>
   );
-  else status = <div className={`status-line${actor ? ' attn' : ''}`}>{actor ? '내 차례예요.' : g.state.cards[opp].offer ? '상대가 카드를 고르는 중…' : '상대 차례예요.'} <span className="muted">· {g.rated ? '레이팅전' : '일반전'} · 수당 +{g.increment / 1000}초</span></div>;
+  else status = (
+    <div className={`status-line${actor ? ' attn' : ''}`}>
+      {actor ? '내 차례예요.' : g.state.cards[opp].offer ? '상대가 카드를 고르고 있어요…' : '상대 차례예요.'}
+      <span className="muted"> · {g.rated ? '레이팅전' : '일반전'} · 한 수에 +{g.increment / 1000}초</span>
+    </div>
+  );
 
   let overlay = null;
   if (g.result) {
@@ -133,33 +134,27 @@ function OnlineGame() {
     );
   }
 
-  const last = g.lastAction?.t === 'move' && g.lastAction.move ? { from: g.lastAction.move.from, to: g.lastAction.move.to } : null;
-
   return (
     <div className="main wide">
       <GameScreen
-        state={g.state}
+        history={hist}
         orientation={you}
         self={you}
         actor={actor}
         players={{ [you]: info(you), [opp]: info(opp) } as Record<Color, ReturnType<typeof info>>}
-        lastMove={last}
         onPick={(id) => send({ type: 'pick', id })}
         onCard={(id, sel) => send({ type: 'card', id, sel })}
         onMove={(move) => send({ type: 'move', move })}
         status={status}
-        log={log}
         overlay={overlay}
         controls={!g.result && (
           <>
-            <button className="btn sm danger" onClick={() => { if (confirm(g.state.ply < 2 ? '대국을 취소할까요?' : '기권할까요?')) send({ type: 'resign' }); }}>{g.state.ply < 2 ? '취소' : '기권'}</button>
+            <button className="btn sm danger" onClick={() => { if (confirm(g.state.ply < 2 ? '대국을 취소할까요?' : '기권할까요?')) send({ type: 'resign' }); }}>{g.state.ply < 2 ? '대국 취소' : '기권'}</button>
             <button className="btn sm" disabled={g.drawOffer === you} onClick={() => send({ type: 'draw', action: 'offer' })}>{g.drawOffer === you ? '무승부 제안함' : '무승부 제안'}</button>
-            {o.status !== 'online' && <span className="chip red">재연결 중…</span>}
+            {o.status !== 'online' && <span className="chip bad">다시 연결하는 중…</span>}
           </>
         )}
       />
     </div>
   );
 }
-
-export type { GameView };

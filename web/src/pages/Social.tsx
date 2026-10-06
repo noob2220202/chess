@@ -18,7 +18,7 @@ export function Leaderboard() {
   return (
     <div className="main" style={{ maxWidth: 820 }}>
       <div className="page-head">
-        <div><div className="eyebrow">랭킹{data ? ` · 시즌 ${data.season}` : ''}</div><h1>리더보드</h1><p>배치 10판을 마친 플레이어가 표시돼요.</p></div>
+        <div><div className="eyebrow">랭킹{data ? ` · 시즌 ${data.season}` : ''}</div><h1>리더보드</h1><p>배치 10판을 마친 플레이어만 표시돼요.</p></div>
         <Link to="/play/online" className="btn primary">레이팅전 하기</Link>
       </div>
       {err && <p className="error-text">{err}</p>}
@@ -173,21 +173,21 @@ export function About() {
         <div className="panel pad stack">
           <h3>핵심 규칙</h3>
           <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <li>상대 킹을 잡으면 승리합니다. 체크·체크메이트 규칙은 없습니다.</li>
-            <li>내 0·10·20번째 수 직전에 오프닝·미들게임·엔드게임 카드 3장 중 1장을 고릅니다.</li>
-            <li>액티브 카드는 턴을 쓰지 않으며 한 차례에 한 장만 사용할 수 있습니다.</li>
-            <li>둘 수 있는 수가 없으면 패배합니다. 3회 동형, 100수 무변화, 300수 도달은 무승부입니다.</li>
-            <li>레이팅전: 미러 드래프트, 10분 + 5초, Glicko-2, 배치 10판, 30초 내 첫 수 없으면 취소.</li>
+            <li>상대 킹을 잡으면 이겨요. 체크와 체크메이트 규칙은 없어요.</li>
+            <li>내 0번째·10번째·20번째 수를 두기 직전에, 각각 오프닝·미들게임·엔드게임 카드 3장 중 1장을 골라요.</li>
+            <li>액티브 카드는 차례를 쓰지 않고, 한 차례에 한 장만 쓸 수 있어요.</li>
+            <li>둘 수 있는 수가 없으면 져요. 같은 국면이 세 번 나오거나, 양쪽 합쳐 100수 동안 기물을 잡지도 폰을 움직이지도 않거나, 300수에 도달하면 무승부예요.</li>
+            <li>레이팅전은 두 사람이 같은 카드 중에서 고르는 미러 드래프트, 10분에 한 수당 5초 추가, Glicko-2 레이팅을 써요. 배치 10판을 마치면 랭킹에 올라요. 30초 안에 첫 수를 두지 않으면 대국이 취소돼요.</li>
           </ul>
         </div>
         <div className="panel pad stack">
           <h3>크레딧</h3>
-          <p>체스 기물 그림: Colin M.L. Burnett (Cburnett), <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA 3.0</a>. 특수 기물 배지는 이를 조합해 만들었습니다.</p>
-          <p className="muted">카드 이름, 효과, 아트, 앱 디자인은 이 프로젝트의 오리지널입니다.</p>
+          <p>체스 기물 그림: Colin M.L. Burnett (Cburnett), <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA 3.0</a>. 특수 기물의 배지는 이 그림을 조합해 만들었어요.</p>
+          <p className="muted">카드 이름, 효과, 그림, 앱 디자인은 이 프로젝트에서 직접 만들었어요.</p>
         </div>
         <div className="panel pad stack">
           <h3>개인정보</h3>
-          <p className="muted">계정에는 아이디와 암호화된 비밀번호만 저장합니다. 대국 기록과 카드 통계는 밸런스 개선에 사용됩니다. 튜토리얼 진행도는 이 기기에만 저장됩니다.</p>
+          <p className="muted">계정에는 아이디와 암호화한 비밀번호만 저장해요. 대국 기록과 카드 통계는 밸런스를 개선하는 데 써요. 튜토리얼 진행도와 설정은 이 기기에만 저장돼요.</p>
         </div>
       </div>
     </div>

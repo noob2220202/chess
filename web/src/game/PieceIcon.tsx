@@ -17,10 +17,18 @@ export function PieceIcon({ type, color, title }: { type: PieceType; color: Colo
   );
 }
 
-export function statusClasses(p: Piece, ply: number): string {
-  const c: string[] = [];
-  if ((p.status.shield ?? 0) > ply) c.push('st-shield');
-  if ((p.status.frozen ?? 0) > ply) c.push('st-frozen');
-  if ((p.status.disarmed ?? 0) > ply) c.push('st-disarmed');
-  return c.join(' ');
+export interface StatusBadge { kind: 'shield' | 'frozen' | 'disarmed'; turns: number; label: string }
+const ST_LABEL = { shield: '방패', frozen: '빙결', disarmed: '무장해제' } as const;
+
+/** Active statuses with the number of turns (rounded up) left. */
+export function statusBadges(p: Piece, ply: number): StatusBadge[] {
+  const out: StatusBadge[] = [];
+  for (const kind of ['frozen', 'disarmed', 'shield'] as const) {
+    const exp = p.status[kind] ?? 0;
+    if (exp > ply) {
+      const turns = Math.ceil((exp - ply) / 2);
+      out.push({ kind, turns, label: `${ST_LABEL[kind]} ${turns}턴 남음` });
+    }
+  }
+  return out;
 }

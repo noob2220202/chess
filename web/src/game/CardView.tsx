@@ -44,19 +44,20 @@ export interface CardViewProps {
   disabled?: boolean;
   selected?: boolean;
   done?: boolean;
+  guide?: boolean;
   onClick?: () => void;
   footer?: React.ReactNode;
 }
 
-export function CardView({ def, compact, big, used, disabled, selected, done, onClick, footer }: CardViewProps) {
+export function CardView({ def, compact, big, used, disabled, selected, done, guide, onClick, footer }: CardViewProps) {
   const cls = ['gcard', `cat-${def.category}`, compact ? 'compact' : '', big ? 'big' : '', onClick ? 'clickable' : '',
-    used ? 'used' : '', disabled ? 'disabled' : '', selected ? 'selected' : ''].filter(Boolean).join(' ');
+    used ? 'used' : '', disabled ? 'disabled' : '', selected ? 'selected' : '', guide ? 'guide' : ''].filter(Boolean).join(' ');
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag className={cls} onClick={onClick} type={onClick ? 'button' : undefined} aria-label={onClick ? `${def.name}: ${def.description}` : undefined}>
       <div className="art">
         <CardArt def={def} />
-        <span className={`chip kind ${def.kind === 'active' ? 'amber' : 'teal'}`}>{kindLabel(def)}</span>
+        <span className="chip kind">{kindLabel(def)}</span>
         <span className="stars" title={`희귀도 ${def.stars}`}>{starText(def.stars)}</span>
       </div>
       <div className="body">

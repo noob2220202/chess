@@ -28,7 +28,7 @@ export function CardsIndex() {
         <div>
           <div className="eyebrow">카드 백과</div>
           <h1>증강 카드 60장</h1>
-          <p>카드를 눌러 설명을 보고, 실제 보드에서 직접 써보세요. 연습 완료 {done}/60</p>
+          <p>카드를 눌러 설명을 읽고, 실제 보드에서 직접 써 보세요. 연습 완료 {done}/60</p>
         </div>
         <Link to="/cards/stats" className="btn sm">카드 통계</Link>
       </div>
@@ -75,7 +75,7 @@ export function CardPage({ id }: { id: string }) {
 
   if (trying) {
     return (
-      <div className="main wide">
+      <div className="main wide tight">
         {header}
         <DemoPlayer
           key={id}
@@ -84,7 +84,7 @@ export function CardPage({ id }: { id: string }) {
           footer={(done) => done ? (
             <div className="row wrap">
               <button className="btn sm" onClick={() => setTrying(false)}>설명으로</button>
-              <Link to={`/cards/${next}`} className="btn sm primary">다음 카드 연습 →</Link>
+              <Link to={`/cards/${next}`} className="btn sm primary guide">다음 카드 연습 →</Link>
             </div>
           ) : null}
         />
@@ -106,10 +106,10 @@ export function CardPage({ id }: { id: string }) {
           <p style={{ fontSize: 18 }}>{def.description}</p>
           {def.detail && <p className="status-line">{def.detail}</p>}
           <div className="feature-list">
-            <div className="feature"><b>언제 나오나요?</b><span>{CATEGORY_HINT[def.category]}</span></div>
+            <div className="feature"><b>언제 고르나요?</b><span>{CATEGORY_HINT[def.category]}</span></div>
             <div className="feature"><b>{def.kind === 'active' ? '어떻게 쓰나요?' : '언제 적용되나요?'}</b>
-              <span>{def.kind === 'active' ? `손패에서 눌러 사용합니다. 턴을 쓰지 않고, 한 번만 쓸 수 있어요.${def.targets?.length ? ` 대상: ${def.targets.map((t) => t.prompt).join(' → ')}` : ''}` : '획득한 순간부터 게임 끝까지 자동으로 적용돼요.'}</span></div>
-            <div className="feature"><b>희귀도 {def.stars}</b><span>★이 높을수록 강력하고, 드래프트에 드물게 나와요.</span></div>
+              <span>{def.kind === 'active' ? '내 카드에서 눌러 써요. 차례를 쓰지 않고, 한 게임에 한 번만 쓸 수 있어요.' : '얻은 순간부터 게임이 끝날 때까지 자동으로 적용돼요.'}</span></div>
+            <div className="feature"><b>희귀도 {def.stars}</b><span>★이 높을수록 강하고, 드래프트에 드물게 나와요.</span></div>
           </div>
           <div><button className="btn primary lg" onClick={() => setTrying(true)}>직접 해보기</button></div>
         </div>
@@ -130,7 +130,7 @@ export function CardStats() {
         <div>
           <div className="eyebrow">밸런스</div>
           <h1>카드 통계</h1>
-          <p>이번 시즌 레이팅전에서 각 카드를 가진 쪽의 승률이에요. 밸런스 조정의 근거로 쓰여요.</p>
+          <p>이번 시즌 레이팅전에서 각 카드를 가진 쪽의 승률이에요. 밸런스를 조정할 때 근거로 써요.</p>
         </div>
         <Link to="/cards" className="btn sm">카드 백과</Link>
       </div>

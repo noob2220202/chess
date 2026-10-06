@@ -188,7 +188,7 @@ export function createServer(opts: ServerOptions) {
   async function api(req: http.IncomingMessage, res: http.ServerResponse, url: URL) {
     const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.socket.remoteAddress || '?';
     const route = `${req.method} ${url.pathname}`;
-    if (route === 'GET /api/health') return json(res, 200, { ok: true, season, rooms: rooms.size, queue: queue.size });
+    if (route === 'GET /api/health') return json(res, 200, { ok: true, season, rooms: [...rooms.values()].filter((r) => !r.ended).length, queue: queue.size, online: sockets.size });
     if (route === 'POST /api/auth/register' || route === 'POST /api/auth/login') {
       if (!authLimiter.allow(ip)) return json(res, 429, { error: '잠시 후 다시 시도해 주세요.' });
       const body = await readBody(req);

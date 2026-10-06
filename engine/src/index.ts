@@ -6,3 +6,5 @@ export * from './game.ts';
 export * from './view.ts';
 export * from './rng.ts';
 export * from './bot.ts';
+export * from './solver.ts';
+export * from './notation.ts';
