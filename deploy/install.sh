@@ -4,9 +4,25 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+wait_for_apt() {
+  # Fresh servers often run automatic updates at boot; installing Docker fails while apt is locked.
+  local waited=0
+  while fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock >/dev/null 2>&1 \
+     || pgrep -x apt-get >/dev/null || pgrep -x apt >/dev/null || pgrep -x dpkg >/dev/null; do
+    [ $waited -eq 0 ] && echo "▶ 다른 패키지 설치(자동 업데이트)가 끝나길 기다리는 중… (몇 분 걸릴 수 있어요)"
+    sleep 5; waited=$((waited + 5))
+    if [ $waited -ge 900 ]; then echo "⚠ 15분이 지나도 apt가 잠겨 있어요. 'ps aux | grep apt'로 확인해 주세요."; exit 1; fi
+  done
+}
+
 if ! command -v docker >/dev/null 2>&1; then
+  wait_for_apt
   echo "▶ Docker 설치 중…"
   curl -fsSL https://get.docker.com | sh
+fi
+if ! docker compose version >/dev/null 2>&1; then
+  wait_for_apt
+  apt-get install -y docker-compose-plugin
 fi
 SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
 
