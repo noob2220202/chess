@@ -40,7 +40,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-          cache: gradle
 
       - name: Install dependencies
         run: npm --prefix engine ci && npm --prefix web ci
