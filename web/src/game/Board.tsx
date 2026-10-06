@@ -28,7 +28,7 @@ export function Board({ state, orientation, actor, lastMove, targeting, guide, o
   const { s: settings } = useSettings();
   const [selected, setSelected] = useState<Square | null>(null);
   const [promo, setPromo] = useState<Move[] | null>(null);
-  const [drag, setDrag] = useState<{ from: Square; x: number; y: number; moved: boolean } | null>(null);
+  const [drag, setDrag] = useState<{ from: Square; x: number; y: number; moved: boolean; touch: boolean } | null>(null);
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [marks, setMarks] = useState<Square[]>([]);
   const [rdrag, setRdrag] = useState<{ from: Square; color: string } | null>(null);
@@ -97,7 +97,7 @@ export function Board({ state, orientation, actor, lastMove, targeting, guide, o
     if (!targeting && !promo && p && actor && p.color === actor && state.turn === actor) {
       wrap.current?.setPointerCapture?.(e.pointerId);
       setSelected(sq);
-      setDrag({ from: sq, x: e.clientX, y: e.clientY, moved: false });
+      setDrag({ from: sq, x: e.clientX, y: e.clientY, moved: false, touch: e.pointerType === 'touch' });
     }
   }
   function onPointerMove(e: React.PointerEvent) {
@@ -169,7 +169,9 @@ export function Board({ state, orientation, actor, lastMove, targeting, guide, o
     if (dragging && wrap.current) {
       const b = wrap.current.getBoundingClientRect();
       const size = b.width / 8;
-      style = { transform: `translate(${drag!.x - b.left - size / 2}px, ${drag!.y - b.top - size / 2}px) scale(1.08)` };
+      // On touch, lift the piece above the finger so it stays visible.
+      const lift = drag!.touch ? size * 0.75 : 0;
+      style = { transform: `translate(${drag!.x - b.left - size / 2}px, ${drag!.y - b.top - size / 2 - lift}px) scale(${drag!.touch ? 1.45 : 1.08})` };
     }
     const badges = statusBadges(p, state.ply);
     pieces.push(
@@ -185,7 +187,10 @@ export function Board({ state, orientation, actor, lastMove, targeting, guide, o
   let tag = null;
   if (guide?.label && guide.squares.length) {
     const { c, r } = toDisplay(guide.squares[0]!);
-    tag = <div className="guide-tag" style={{ left: `${(c + 0.5) * 12.5}%`, top: `${r * 12.5}%` }}>{guide.label}</div>;
+    const edge = c <= 1 ? ' edge-l' : c >= 6 ? ' edge-r' : '';
+    tag = r === 0
+      ? <div className={`guide-tag below${edge}`} style={{ left: `${(c + 0.5) * 12.5}%`, top: `${(r + 1) * 12.5}%` }}>{guide.label}</div>
+      : <div className={`guide-tag${edge}`} style={{ left: `${(c + 0.5) * 12.5}%`, top: `${r * 12.5}%` }}>{guide.label}</div>;
   }
 
   const center = (s: Square) => { const { c, r } = toDisplay(s); return { x: c + 0.5, y: r + 0.5 }; };
@@ -230,12 +235,12 @@ export function Board({ state, orientation, actor, lastMove, targeting, guide, o
 
 function PromotionPicker({ color, onPick, onCancel }: { color: Color; onPick: (t: PieceType) => void; onCancel: () => void }) {
   return (
-    <div className="modal-backdrop" style={{ position: 'absolute', borderRadius: 4 }} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={onCancel}>
-      <div className="panel pad" onClick={(e) => e.stopPropagation()}>
+    <div className="backdrop" style={{ position: 'absolute', placeItems: 'center' }} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={onCancel}>
+      <div className="surface pad" onClick={(e) => e.stopPropagation()}>
         <div className="eyebrow" style={{ marginBottom: 10 }}>어떤 기물로 승진할까요?</div>
         <div className="row">
           {(['Q', 'R', 'B', 'N'] as const).map((t) => (
-            <button key={t} className="btn" style={{ width: 64, height: 64, padding: 6 }} onClick={() => onPick(t)} aria-label={PIECE_NAME[t]}>
+            <button key={t} className="btn" style={{ width: 64, height: 64, padding: 6, background: 'var(--sq-light)' }} onClick={() => onPick(t)} aria-label={PIECE_NAME[t]}>
               <img src={`/pieces/${color}${t}.svg`} alt="" style={{ width: 48, height: 48 }} />
             </button>
           ))}

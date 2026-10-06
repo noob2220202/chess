@@ -1,5 +1,5 @@
+import { BarChart3, Bot, GraduationCap, House, Layers, Settings, Swords, Trophy, Users } from 'lucide-react';
 import { APP_NAME, APP_NAME_EN } from './brand.ts';
-import { Icon } from './lib/icons.tsx';
 import { useOnline } from './lib/online.tsx';
 import { Link, match, usePath } from './lib/router.tsx';
 import { useSettings } from './lib/settings.tsx';
@@ -28,20 +28,21 @@ function Routes({ path }: { path: string }) {
   if (path === '/login') return <Login />;
   if (path === '/about') return <About />;
   return (
-    <div className="main center stack" style={{ paddingTop: 80 }}>
+    <div className="page center stack" style={{ paddingTop: 80 }}>
+      <img src="/pieces/bN.svg" alt="" style={{ width: 80, margin: '0 auto' }} />
       <h1>페이지를 찾을 수 없어요</h1>
       <div><Link to="/" className="btn primary">홈으로</Link></div>
     </div>
   );
 }
 
-const NAV: Array<[string, keyof typeof Icon, string]> = [
-  ['/', 'home', '홈'],
-  ['/play/online', 'play', '온라인 대전'],
-  ['/play/ai', 'bot', 'AI 대전'],
-  ['/learn', 'learn', '배우기'],
-  ['/cards', 'cards', '카드'],
-  ['/leaderboard', 'rank', '랭킹'],
+const NAV = [
+  { to: '/', icon: House, label: '홈' },
+  { to: '/play/online', icon: Swords, label: '온라인 대전' },
+  { to: '/play/ai', icon: Bot, label: 'AI 대전' },
+  { to: '/learn', icon: GraduationCap, label: '배우기' },
+  { to: '/cards', icon: Layers, label: '카드' },
+  { to: '/leaderboard', icon: Trophy, label: '랭킹' },
 ];
 
 export default function App() {
@@ -54,34 +55,36 @@ export default function App() {
     <div className="shell">
       <aside className="sidebar" aria-label="주요 메뉴">
         <Link to="/" className="brand"><img src="/icon.svg" alt="" /><span>{APP_NAME}<small>{APP_NAME_EN}</small></span></Link>
-        {NAV.map(([to, ic, label]) => (
-          <Link key={to} to={to} className={`nav-item${active(to) ? ' active' : ''}`} title={label}>{Icon[ic]}<span>{label}</span></Link>
+        {NAV.map(({ to, icon: I, label }) => (
+          <Link key={to} to={to} className={`nav-item${active(to) && !(to === '/cards' && path === '/cards/stats') ? ' active' : ''}`} title={label}><I /><span>{label}</span></Link>
         ))}
         <div className="nav-sep" />
-        <Link to="/play/local" className={`nav-item${active('/play/local') ? ' active' : ''}`} title="로컬 2인">{Icon.local}<span>로컬 2인</span></Link>
-        <Link to="/cards/stats" className={`nav-item${active('/cards/stats') ? ' active' : ''}`} title="카드 통계">{Icon.stats}<span>카드 통계</span></Link>
-        <div className="grow-space" />
-        <button className="nav-item" onClick={open} title="설정">{Icon.settings}<span>설정</span></button>
+        <Link to="/play/local" className={`nav-item${active('/play/local') ? ' active' : ''}`} title="로컬 2인"><Users /><span>로컬 2인</span></Link>
+        <Link to="/cards/stats" className={`nav-item${path === '/cards/stats' ? ' active' : ''}`} title="카드 통계"><BarChart3 /><span>카드 통계</span></Link>
+        <div className="spacer" />
+        <button className="nav-item" onClick={open} title="설정"><Settings /><span>설정</span></button>
         {user ? (
-          <Link to={`/u/${user.username}`} className="account" title="내 프로필">
-            <span className="avatar-dot">{user.username.slice(0, 1).toUpperCase()}</span>
+          <Link to={`/u/${user.username}`} className="me" title="내 프로필">
+            <span className="avatar">{user.username.slice(0, 1).toUpperCase()}</span>
             <span className="who"><b>{user.username}</b><span>{rating ? `${rating.rating}${rating.provisional ? '?' : ''}` : ''}</span></span>
           </Link>
         ) : (
-          <Link to={`/login?next=${encodeURIComponent(path)}`} className="btn primary block" style={{ marginTop: 6 }}>로그인</Link>
+          <Link to={`/login?next=${encodeURIComponent(path)}`} className="btn primary block" style={{ marginTop: 8 }}>로그인</Link>
         )}
       </aside>
 
       <div className="content">
-        <header className="mobilebar">
+        <header className="topbar">
           <Link to="/" className="brand"><img src="/icon.svg" alt="" />{APP_NAME}</Link>
           <span className="spacer" />
-          <button className="btn ghost icon" onClick={open} aria-label="설정">{Icon.settings}</button>
-          {user ? <Link to={`/u/${user.username}`} className="btn sm">{user.username}</Link> : <Link to="/login" className="btn sm primary" style={{ marginBottom: 0 }}>로그인</Link>}
+          <button className="icon-btn" onClick={open} aria-label="설정"><Settings /></button>
+          {user
+            ? <Link to={`/u/${user.username}`} className="me" style={{ padding: 4 }} aria-label="내 프로필"><span className="avatar">{user.username.slice(0, 1).toUpperCase()}</span></Link>
+            : <Link to="/login" className="btn sm primary" style={{ marginBottom: 4 }}>로그인</Link>}
         </header>
         {inGame && (
-          <Link to="/play/online" className="status-line attn" style={{ display: 'block', textAlign: 'center', borderRadius: 0, color: 'inherit' }}>
-            진행 중인 온라인 대국이 있어요 · 돌아가기 →
+          <Link to="/play/online" className="notice attn" style={{ margin: '8px 16px 0', color: 'var(--text)' }}>
+            <Swords /><span className="grow">진행 중인 온라인 대국이 있어요</span><b>돌아가기</b>
           </Link>
         )}
         <Routes path={path} />
@@ -89,11 +92,11 @@ export default function App() {
       </div>
 
       <nav className="tabbar" aria-label="하단 메뉴">
-        <Link to="/" className={active('/') ? 'active' : ''}>{Icon.home}홈</Link>
-        <Link to="/learn" className={active('/learn') ? 'active' : ''}>{Icon.learn}배우기</Link>
-        <Link to="/play/online" className={active('/play') ? 'active' : ''}>{Icon.play}대전</Link>
-        <Link to="/cards" className={active('/cards') ? 'active' : ''}>{Icon.cards}카드</Link>
-        <Link to="/leaderboard" className={active('/leaderboard') ? 'active' : ''}>{Icon.rank}랭킹</Link>
+        <Link to="/" className={active('/') ? 'active' : ''}><House />홈</Link>
+        <Link to="/learn" className={active('/learn') ? 'active' : ''}><GraduationCap />배우기</Link>
+        <Link to="/play/online" className={active('/play') ? 'active' : ''}><Swords />대전</Link>
+        <Link to="/cards" className={active('/cards') ? 'active' : ''}><Layers />카드</Link>
+        <Link to="/leaderboard" className={active('/leaderboard') ? 'active' : ''}><Trophy />랭킹</Link>
       </nav>
     </div>
   );

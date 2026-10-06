@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { RotateCcw } from 'lucide-react';
 import type { DemoAction, GameState, Move, Square } from '@engine';
 import { CARDS, PIECE_NAME, cloneState, demoAct, solveDemo, squareName } from '@engine';
 import { GameScreen } from '../game/GameScreen.tsx';
@@ -7,6 +8,7 @@ import { useSettings } from '../lib/settings.tsx';
 import { sound } from '../lib/sound.ts';
 import { josa } from '../lib/korean.ts';
 import { useToast } from '../lib/toast.tsx';
+import { useIsMobile } from '../lib/ui.tsx';
 
 export interface DemoSpec {
   build: () => GameState;
@@ -28,8 +30,9 @@ function Burst() {
   );
 }
 
-export function DemoPlayer({ spec, onComplete, footer }: { spec: DemoSpec; onComplete?: () => void; footer?: (done: boolean, reset: () => void) => ReactNode }) {
+export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: DemoSpec; onComplete?: () => void; footer?: (done: boolean, reset: () => void) => ReactNode; title?: string; onBack?: () => void }) {
   const { s: settings } = useSettings();
+  const mobile = useIsMobile();
   const [hist, setHist] = useState<HistEntry[]>(() => [startEntry(spec.build())]);
   const [done, setDone] = useState(false);
   const [burst, setBurst] = useState(0);
@@ -85,6 +88,7 @@ export function DemoPlayer({ spec, onComplete, footer }: { spec: DemoSpec; onCom
         <p>{done ? spec.done : spec.text}</p>
         {!done && hintText && <div className="step-hint">다음 할 일: {hintText}</div>}
         {!done && !showHint && next && <div><button className="btn sm" onClick={() => setShowHint(true)}>힌트 보기</button></div>}
+        {!done && !mobile && <div className="row" style={{ gap: 6 }}><button className="btn sm ghost" style={{ paddingLeft: 0 }} onClick={reset}><RotateCcw />처음부터</button></div>}
         {footer?.(done, reset)}
       </div>
     </div>
@@ -106,7 +110,9 @@ export function DemoPlayer({ spec, onComplete, footer }: { spec: DemoSpec; onCom
         guideCard={guideCard}
         hideDraft
         showMoves={false}
-        controls={<button className="btn sm" onClick={reset}>처음부터 다시</button>}
+        menu={[{ label: '처음부터 다시', icon: <RotateCcw />, onClick: reset }]}
+        title={title}
+        onBack={onBack}
       />
       {burst > 0 && <Burst key={burst} />}
     </>

@@ -63,3 +63,10 @@ export const sound = {
   success: () => tone([784, 988, 1318], 0.45, 0.07, 'triangle', 0.07),
   error: () => tone([220, 196], 0.18, 0.06, 'square', 0.08),
 };
+
+/** Short vibration on supporting phones. */
+export function haptic(kind: 'tap' | 'move' | 'capture' | 'win' | 'error'): void {
+  if (!enabled || typeof navigator === 'undefined' || !('vibrate' in navigator)) return;
+  const pattern = { tap: 8, move: 12, capture: [10, 30, 18], win: [20, 40, 20, 40, 40], error: [30, 40, 30] }[kind];
+  try { navigator.vibrate(pattern); } catch { /* ignore */ }
+}

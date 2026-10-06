@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BookOpen, Bot, ChevronRight, Circle, CircleCheck, Flag, LogOut, Play, Trash2 } from 'lucide-react';
 import type { BotLevel, CardId, Color, GameState, Move, Square } from '@engine';
 import { applyMove, newGame, pickCard, playCard } from '@engine';
 import { askBot } from '../bot/client.ts';
-import { GameScreen, REASON_TEXT, ResultModal } from '../game/GameScreen.tsx';
+import { GameScreen, REASON_TEXT, ResultModal, type MenuItem } from '../game/GameScreen.tsx';
 import { applyAct, startEntry, type Act, type HistEntry } from '../game/history.ts';
 import { navigate } from '../lib/router.tsx';
 import { load, remove, save } from '../lib/storage.ts';
@@ -48,56 +49,54 @@ export default function PlayOffline({ kind }: { kind: Kind }) {
 
   if (game) return <OfflineGame key={`${game.initial.board.map((p) => p?.id ?? 0).join('')}-${game.human}`} initial={game} onExit={() => { setGame(null); setSaved(load<Saved | null>(KEY(kind), null)); }} onRestart={() => start(settings)} />;
 
+  const LV_IC = ['teal', 'blue', 'violet'];
   return (
-    <div className="main narrow">
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">{kind === 'ai' ? '혼자 연습하기' : '한 기기에서 둘이서'}</div>
-          <h1>{kind === 'ai' ? 'AI 대전' : '로컬 2인 대전'}</h1>
-          <p>{kind === 'ai' ? '인터넷 없이도 둘 수 있어요. 레이팅에는 반영되지 않아요.' : '한 화면에서 번갈아 두는 친선전이에요.'}</p>
-        </div>
+    <div className="page narrow">
+      <div className="head">
+        <div className="eyebrow">{kind === 'ai' ? '혼자 연습하기' : '한 기기에서 둘이서'}</div>
+        <h1>{kind === 'ai' ? 'AI 대전' : '로컬 2인 대전'}</h1>
+        <p>{kind === 'ai' ? '인터넷 없이도 둘 수 있어요. 레이팅에는 반영되지 않아요.' : '한 화면에서 번갈아 두는 친선전이에요.'}</p>
       </div>
       {saved && (
-        <div className="panel pad row" style={{ marginBottom: 16 }}>
-          <div className="grow"><b>이어서 둘 대국이 있어요</b><div className="muted" style={{ fontSize: 13.5 }}>{saved.actions.length}개의 기록</div></div>
-          <button className="btn ghost" onClick={() => { remove(KEY(kind)); setSaved(null); }}>지우기</button>
-          <button className="btn primary" onClick={() => setGame(saved)}>이어하기</button>
+        <div className="list" style={{ marginBottom: 22 }}>
+          <button className="list-row" onClick={() => setGame(saved)}>
+            <span className="ic amber"><Play /></span>
+            <span className="grow"><b>이어서 두기</b><small>{saved.actions.length}개의 기록이 저장돼 있어요</small></span>
+            <ChevronRight className="chev" />
+          </button>
+          <button className="list-row" onClick={() => { remove(KEY(kind)); setSaved(null); }}>
+            <span className="ic slate"><Trash2 /></span>
+            <span className="grow"><b>저장된 대국 지우기</b></span>
+          </button>
         </div>
       )}
-      <div className="panel pad stack" style={{ gap: 22 }}>
-        {kind === 'ai' && (
-          <>
-            <div className="stack" style={{ gap: 8 }}>
-              <span className="eyebrow">난이도</span>
-              <div className="quick-grid">
-                {LEVELS.map(([lv, name, hint]) => (
-                  <button key={lv} className={`quick${settings.level === lv ? ' feature' : ''}`} style={{ minHeight: 84 }} onClick={() => setSettings({ ...settings, level: lv })}>
-                    <span className="tc" style={{ fontFamily: 'var(--font)', fontSize: 19 }}>{name}</span>
-                    <span className="lbl">{hint}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="stack" style={{ gap: 8 }}>
-              <span className="eyebrow">내 색</span>
-              <div className="seg">
-                {([['w', '백 (먼저 둠)'], ['b', '흑'], ['random', '무작위']] as const).map(([c, l]) => (
-                  <button key={c} className={settings.color === c ? 'on' : ''} onClick={() => setSettings({ ...settings, color: c })}>{l}</button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-        <div className="stack" style={{ gap: 8 }}>
-          <span className="eyebrow">드래프트 방식</span>
-          <div className="seg">
-            <button className={settings.mirror ? 'on' : ''} onClick={() => setSettings({ ...settings, mirror: true })}>같은 카드 (레이팅전 방식)</button>
-            <button className={!settings.mirror ? 'on' : ''} onClick={() => setSettings({ ...settings, mirror: false })}>각자 다른 카드</button>
+      {kind === 'ai' && (
+        <>
+          <div className="section-h" style={{ marginTop: 0 }}><h2>난이도</h2></div>
+          <div className="list">
+            {LEVELS.map(([lv, name, hint], i) => (
+              <button key={lv} className="list-row" onClick={() => setSettings({ ...settings, level: lv })} aria-pressed={settings.level === lv}>
+                <span className={`ic ${LV_IC[i]}`}><Bot /></span>
+                <span className="grow"><b>{name}</b><small>{hint}</small></span>
+                {settings.level === lv ? <CircleCheck className="chev" style={{ color: 'var(--accent)' }} /> : <Circle className="chev" />}
+              </button>
+            ))}
           </div>
-          <p className="muted" style={{ fontSize: 13.5 }}>{settings.mirror ? '두 사람이 매번 같은 카드 3장 중에서 골라요.' : '두 사람이 서로 다른 카드 3장을 제시받아요.'}</p>
-        </div>
-        <button className="btn primary lg block" onClick={() => start(settings)}>새 대국 시작</button>
+          <div className="section-h"><h2>내 색</h2></div>
+          <div className="seg">
+            {([['w', '백 (먼저 둠)'], ['b', '흑'], ['random', '무작위']] as const).map(([c, l]) => (
+              <button key={c} className={settings.color === c ? 'on' : ''} onClick={() => setSettings({ ...settings, color: c })}>{l}</button>
+            ))}
+          </div>
+        </>
+      )}
+      <div className="section-h" style={kind === 'ai' ? undefined : { marginTop: 0 }}><h2>드래프트 방식</h2></div>
+      <div className="seg">
+        <button className={settings.mirror ? 'on' : ''} onClick={() => setSettings({ ...settings, mirror: true })}>같은 카드 (레이팅전 방식)</button>
+        <button className={!settings.mirror ? 'on' : ''} onClick={() => setSettings({ ...settings, mirror: false })}>각자 다른 카드</button>
       </div>
+      <p className="muted" style={{ fontSize: 13.5, marginTop: 8 }}>{settings.mirror ? '두 사람이 매번 같은 카드 3장 중에서 골라요.' : '두 사람이 서로 다른 카드 3장을 제시받아요.'}</p>
+      <div style={{ marginTop: 28 }}><button className="btn primary lg block" onClick={() => start(settings)}>새 대국 시작</button></div>
     </div>
   );
 }
@@ -154,23 +153,36 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
 
   let overlay = null;
   if (s.winner) {
+    const outcome = s.winner === 'draw' ? 'draw' : g.kind === 'local' || s.winner === g.human ? 'win' : 'lose';
     const title = s.winner === 'draw' ? '무승부' : g.kind === 'local' ? `${s.winner === 'w' ? '백' : '흑'} 승리` : s.winner === g.human ? '승리!' : '패배';
     overlay = (
-      <ResultModal title={title} subtitle={REASON_TEXT[s.endReason ?? 'end'] ?? ''}>
+      <ResultModal outcome={outcome} title={title} subtitle={REASON_TEXT[s.endReason ?? 'end'] ?? ''}>
         <button className="btn" onClick={onExit}>설정으로</button>
         <button className="btn primary" onClick={onRestart}>한 판 더</button>
       </ResultModal>
     );
   }
 
-  const status = s.winner ? null : actor ? (
-    <div className="status-line attn">{g.kind === 'local' ? `${s.turn === 'w' ? '백' : '흑'} 차례예요.` : '내 차례예요.'} 기물을 끌거나 눌러서 움직이세요.</div>
-  ) : (
-    <div className="status-line row"><span className="spinner" /> AI가 다음 수를 고민하고 있어요…</div>
+  const resign = () => {
+    if (!confirm('기권할까요?')) return;
+    setHist((h) => {
+      const last = h[h.length - 1]!;
+      const st = { ...last.state, winner: (g.kind === 'local' ? (last.state.turn === 'w' ? 'b' : 'w') : botColor!) as Color, endReason: 'resign' as const };
+      return [...h.slice(0, -1), { ...last, state: st }];
+    });
+  };
+  const menu: MenuItem[] = [
+    ...(s.winner ? [] : [{ label: '기권', icon: <Flag />, onClick: resign, danger: true }]),
+    { label: '카드 백과', icon: <BookOpen />, onClick: () => navigate('/cards') },
+    { label: '나가기', icon: <LogOut />, onClick: onExit },
+  ];
+
+  const status = s.winner ? null : actor ? (g.kind === 'local' ? <div className="notice attn">{`${s.turn === 'w' ? '백' : '흑'} 차례예요.`}</div> : null) : (
+    <div className="notice"><span className="spinner" /> AI가 다음 수를 고민하고 있어요…</div>
   );
 
   return (
-    <div className="main wide">
+    <div className="page wide">
       <GameScreen
         history={hist}
         orientation={g.kind === 'local' ? 'w' : g.human}
@@ -182,20 +194,9 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
         onMove={onMove}
         status={status}
         overlay={overlay}
-        controls={
-          <>
-            <button className="btn sm" onClick={onExit}>나가기</button>
-            {!s.winner && <button className="btn sm danger" onClick={() => {
-              if (!confirm('기권할까요?')) return;
-              setHist((h) => {
-                const last = h[h.length - 1]!;
-                const st = { ...last.state, winner: (g.kind === 'local' ? (last.state.turn === 'w' ? 'b' : 'w') : botColor!) as Color, endReason: 'resign' as const };
-                return [...h.slice(0, -1), { ...last, state: st }];
-              });
-            }}>기권</button>}
-            <button className="btn sm ghost" onClick={() => navigate('/cards')}>카드 백과</button>
-          </>
-        }
+        menu={menu}
+        title={g.kind === 'ai' ? `AI ${levelName}` : '로컬 2인'}
+        onBack={onExit}
       />
     </div>
   );

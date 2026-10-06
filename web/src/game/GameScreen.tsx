@@ -1,36 +1,42 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Ellipsis, Flag, Handshake, Layers, ListOrdered, Repeat, Settings as SettingsIcon, Trophy, X,
+} from 'lucide-react';
 import type { CardId, Color, GameState, Move, PieceType, Square } from '@engine';
 import { CARDS, PIECE_VALUE, cardReady, targetOptions } from '@engine';
 import { josa } from '../lib/korean.ts';
 import { useSettings } from '../lib/settings.tsx';
-import { setSoundEnabled, sound } from '../lib/sound.ts';
+import { haptic, setSoundEnabled, sound } from '../lib/sound.ts';
+import { Sheet, useInGame, useIsMobile } from '../lib/ui.tsx';
 import { Board, type Guide } from './Board.tsx';
-import { CardView } from './CardView.tsx';
+import { CardChip, CardView, rarity } from './CardView.tsx';
 import { CATEGORY_HINT, CATEGORY_LABEL } from './cardMeta.ts';
 import type { HistEntry } from './history.ts';
 import { pieceSrc } from './PieceIcon.tsx';
 
 export interface PlayerInfo { name: string; sub?: string; clockMs?: number | null; running?: boolean }
+export interface MenuItem { label: string; icon?: ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean }
 
 export interface GameScreenProps {
   history: HistEntry[];
   orientation: Color;
   actor: Color | null;
-  /** The viewer's own colour (online, AI, tutorial); null for pass-and-play. */
   self?: Color | null;
   players: Record<Color, PlayerInfo>;
   onPick: (id: CardId) => void;
   onCard: (id: CardId, sel: Square[]) => void;
   onMove: (m: Move) => void;
   status?: ReactNode;
-  controls?: ReactNode;
+  /** Game actions (resign, draw, exit...). Buttons on desktop, menu sheet on mobile. */
+  menu?: MenuItem[];
   overlay?: ReactNode;
   hideDraft?: boolean;
-  /** Tutorial guidance. */
   guide?: Guide | null;
   guideCard?: CardId | null;
-  /** Show the move list (hidden in short demos). */
   showMoves?: boolean;
+  /** Mobile header. */
+  title?: string;
+  onBack?: () => void;
 }
 
 export function formatClock(ms: number): string {
@@ -40,7 +46,6 @@ export function formatClock(ms: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-const catVar = (c: string) => `var(--cat-${c === 'OPENING' ? 'opening' : c === 'MIDDLE' ? 'middle' : 'end'})`;
 const BASE: Record<PieceType, 'P' | 'N' | 'B' | 'R' | 'Q' | 'K'> = { P: 'P', N: 'N', B: 'B', R: 'R', Q: 'Q', K: 'K', A: 'B', C: 'R', M: 'Q', L: 'N', G: 'P' };
 
 function PlayerStrip({ color, info, state, onInspect }: { color: Color; info: PlayerInfo; state: GameState; onInspect: (id: CardId) => void }) {
@@ -50,105 +55,106 @@ function PlayerStrip({ color, info, state, onInspect }: { color: Color; info: Pl
   const adv = material(color) - material(opp);
   const cards = state.cards[color];
   const turn = state.turn === color && !state.winner;
-  const low = info.clockMs != null && info.clockMs < 20_000;
   return (
     <div className="player-strip">
-      <div className="pic"><img src={pieceSrc(color, 'K')} alt="" /></div>
+      <div className="pic"><img src={pieceSrc(color, 'K')} alt={color === 'w' ? '백' : '흑'} /></div>
       <div className="who">
-        <div className="row" style={{ gap: 0 }}>
-          {turn && <span className="turn-dot" title="차례" />}
+        <div className="nm">
+          {turn && <span className="turn-dot" aria-label="차례" />}
           <b>{info.name}</b>
           {info.sub && <span className="rt">{info.sub}</span>}
-          <span className="cardpips" aria-label="카드">
-            {cards.hand.map((id) => CARDS[id] && <button key={id} className="cardpip" title={CARDS[id]!.name} style={{ background: catVar(CARDS[id]!.category) }} onClick={() => onInspect(id)} />)}
-            {cards.used.map((id) => CARDS[id] && <button key={id} className="cardpip used" title={`${CARDS[id]!.name} (사용함)`} style={{ background: catVar(CARDS[id]!.category) }} onClick={() => onInspect(id)} />)}
-            {cards.offer && <span className="chip" style={{ marginLeft: 4 }}>카드 고르는 중</span>}
+          <span className="pips">
+            {cards.hand.map((id) => CARDS[id] && <button key={id} className={`pip c-${CARDS[id]!.category}`} title={CARDS[id]!.name} onClick={() => onInspect(id)} />)}
+            {cards.used.map((id) => CARDS[id] && <button key={id} className={`pip used c-${CARDS[id]!.category}`} title={`${CARDS[id]!.name} (사용함)`} onClick={() => onInspect(id)} />)}
           </span>
+          {cards.offer && <span className="chip">카드 고르는 중</span>}
         </div>
         <div className="caps">
           {taken.map((t, i) => <img key={i} src={pieceSrc(opp, BASE[t])} alt="" />)}
           {adv > 0 && <span className="adv">+{adv}</span>}
         </div>
       </div>
-      {info.clockMs != null && <div className={`clock${info.running ? ' running' : ''}${low ? ' low' : ''}`}>{formatClock(info.clockMs)}</div>}
+      {info.clockMs != null && <div className={`clock${info.running ? ' running' : ''}${info.clockMs < 20_000 ? ' low' : ''}`}>{formatClock(info.clockMs)}</div>}
     </div>
   );
 }
 
-export function DraftModal({ offer, round, onPick }: { offer: CardId[]; round: number; onPick: (id: CardId) => void }) {
+export function DraftSheet({ offer, round, onPick }: { offer: CardId[]; round: number; onPick: (id: CardId) => void }) {
   const [sel, setSel] = useState<CardId | null>(null);
-  const [peek, setPeek] = useState(false);
+  const [idx, setIdx] = useState(0);
+  const row = useRef<HTMLDivElement>(null);
   const cat = CARDS[offer[0]!]?.category ?? 'OPENING';
-  if (peek) {
-    return (
-      <div style={{ position: 'fixed', left: '50%', bottom: 90, transform: 'translateX(-50%)', zIndex: 61 }}>
-        <button className="btn primary lg" onClick={() => setPeek(false)}>카드 고르기로 돌아가기</button>
-      </div>
-    );
+  function onScroll() {
+    const el = row.current;
+    if (!el) return;
+    const kids = Array.from(el.children) as HTMLElement[];
+    const mid = el.scrollLeft + el.clientWidth / 2;
+    let best = 0;
+    kids.forEach((k, i) => { if (Math.abs(k.offsetLeft + k.offsetWidth / 2 - mid) < Math.abs(kids[best]!.offsetLeft + kids[best]!.offsetWidth / 2 - mid)) best = i; });
+    setIdx(best);
   }
   return (
-    <div className="modal-backdrop">
-      <div className="modal wide" role="dialog" aria-modal="true" aria-labelledby="draft-title">
+    <Sheet wide label="카드 드래프트">
+      <div className="center">
         <div className="eyebrow">드래프트 {round + 1}/3 · {CATEGORY_LABEL[cat]}</div>
-        <h2 id="draft-title">증강 카드 한 장을 고르세요</h2>
-        <p className="muted">{CATEGORY_HINT[cat]}. 패시브는 계속 적용되고, 액티브는 원할 때 한 번 쓸 수 있어요.</p>
-        <div className="draft-cards">
-          {offer.map((id) => <CardView key={id} def={CARDS[id]!} selected={sel === id} onClick={() => setSel(id)} />)}
-        </div>
-        {sel && CARDS[sel]!.detail && <p className="status-line" style={{ marginBottom: 12 }}>{CARDS[sel]!.detail}</p>}
-        <div className="row between">
-          <button className="btn ghost" onClick={() => setPeek(true)}>판 보기</button>
-          <button className="btn primary lg" disabled={!sel} onClick={() => sel && onPick(sel)}>이 카드로 결정</button>
-        </div>
+        <h2 style={{ marginTop: 4 }}>카드 한 장을 고르세요</h2>
+        <p className="muted" style={{ fontSize: 14, marginTop: 4 }}>{CATEGORY_HINT[cat]}</p>
       </div>
-    </div>
+      <div className="draft-row" ref={row} onScroll={onScroll}>
+        {offer.map((id) => <CardView key={id} def={CARDS[id]!} selected={sel === id} onClick={() => { setSel(id); haptic('tap'); }} />)}
+      </div>
+      <div className="dots">{offer.map((id, i) => <i key={id} className={i === idx ? 'on' : ''} />)}</div>
+      {sel && CARDS[sel]!.detail && <p className="muted center" style={{ fontSize: 13.5, marginBottom: 12 }}>{CARDS[sel]!.detail}</p>}
+      <button className="btn primary lg block" disabled={!sel} onClick={() => sel && onPick(sel)}>
+        {sel ? `${josa(`“${CARDS[sel]!.name}”`, '으로/로')} 결정` : '카드를 눌러 고르세요'}
+      </button>
+    </Sheet>
   );
 }
 
-export function CardInfoModal({ id, onClose, children }: { id: CardId; onClose: () => void; children?: ReactNode }) {
+export function CardSheet({ id, onClose, onUse, useGuide }: { id: CardId; onClose: () => void; onUse?: () => void; useGuide?: boolean }) {
   const d = CARDS[id]!;
+  const r = rarity(d.stars);
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className="row top wrap" style={{ gap: 18 }}>
-          <div style={{ width: 190 }}><CardView def={d} /></div>
-          <div className="grow stack" style={{ minWidth: 200 }}>
-            <h2>{d.name}</h2>
-            <p>{d.description}</p>
-            {d.detail && <p className="muted">{d.detail}</p>}
-            {children}
-            <div><button className="btn" onClick={onClose}>닫기</button></div>
+    <Sheet onClose={onClose} label={d.name}>
+      <div className="card-sheet">
+        <CardView def={d} />
+        <div>
+          <div className="eyebrow">{CATEGORY_LABEL[d.category]} · {d.kind === 'active' ? '액티브' : '패시브'} · {r.label}</div>
+          <h2 style={{ margin: '4px 0 8px' }}>{d.name}</h2>
+          <p style={{ fontSize: 15.5 }}>{d.description}</p>
+          {d.detail && <p className="muted" style={{ fontSize: 14, marginTop: 8 }}>{d.detail}</p>}
+          <div className="actions">
+            {onUse && <button className={`btn primary lg block${useGuide ? ' guide' : ''}`} onClick={onUse}>사용하기</button>}
+            <button className="btn block" onClick={onClose}>닫기</button>
           </div>
         </div>
       </div>
-    </div>
+    </Sheet>
   );
 }
 
-/** Lichess-style numbered move list with card events inline. */
+/** Numbered move list with figurines and card events inline. */
 function MoveList({ history, view, onSelect }: { history: HistEntry[]; view: number; onSelect: (i: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const rows: Array<{ n: number; w: number[]; b: number[] }> = [];
   let cur: { n: number; w: number[]; b: number[] } | null = null;
   history.forEach((e, i) => {
     if (e.kind === 'start' || !e.color) return;
-    if (!cur || (e.color === 'w' && cur.w.some((j) => history[j]!.kind === 'move')) || (e.color === 'w' && cur.b.length)) {
-      cur = { n: rows.length + 1, w: [], b: [] };
-      rows.push(cur);
-    }
+    const whiteMoved = cur?.w.some((j) => history[j]!.kind === 'move');
+    if (!cur || (e.color === 'w' && (whiteMoved || cur.b.length > 0))) { cur = { n: rows.length + 1, w: [], b: [] }; rows.push(cur); }
     cur[e.color].push(i);
   });
   useEffect(() => { const el = ref.current; if (el) el.scrollTop = el.scrollHeight; }, [history.length]);
   if (!rows.length) return <div className="moves" ref={ref}><div className="moves-empty">아직 둔 수가 없어요.</div></div>;
   const cell = (idx: number[]) => {
     if (!idx.length) return <span className="mv" />;
-    const target = idx[idx.length - 1]!;
     return (
-      <button className={`mv${idx.includes(view) ? ' cur' : ''}`} onClick={() => onSelect(target)}>
+      <button className={`mv${idx.includes(view) ? ' cur' : ''}`} onClick={() => onSelect(idx[idx.length - 1]!)}>
         {idx.map((i) => {
           const e = history[i]!;
-          if (e.kind === 'pick') return <span key={i} className="ev pick" title="드래프트">{CARDS[e.card!]?.name}</span>;
-          if (e.kind === 'card') return <span key={i} className="ev" title="카드 사용">{CARDS[e.card!]?.name}</span>;
+          if (e.kind === 'pick') return <span key={i} className="ev pick">{CARDS[e.card!]?.name}</span>;
+          if (e.kind === 'card') return <span key={i} className="ev">{CARDS[e.card!]?.name}</span>;
           return (
             <span key={i} className="row" style={{ gap: 1 }}>
               {e.note?.piece && e.note.piece !== 'P' && <img src={pieceSrc(e.color!, BASE[e.note.piece])} alt={e.note.piece} />}
@@ -159,28 +165,20 @@ function MoveList({ history, view, onSelect }: { history: HistEntry[]; view: num
       </button>
     );
   };
-  return (
-    <div className="moves" ref={ref}>
-      {rows.map((r) => (
-        <div className="moves-row" key={r.n}>
-          <span className="no">{r.n}</span>
-          {cell(r.w)}
-          {cell(r.b)}
-        </div>
-      ))}
-    </div>
-  );
+  return <div className="moves" ref={ref}>{rows.map((r) => <div className="moves-row" key={r.n}><span className="no">{r.n}</span>{cell(r.w)}{cell(r.b)}</div>)}</div>;
 }
 
 export function GameScreen(p: GameScreenProps) {
+  useInGame();
   const { history, actor } = p;
+  const mobile = useIsMobile();
   const { s: settings, open: openSettings } = useSettings();
   const liveIdx = history.length - 1;
   const [view, setView] = useState<number | null>(null);
   const [flip, setFlip] = useState(false);
   const [target, setTarget] = useState<{ id: CardId; picked: Square[] } | null>(null);
   const [confirm, setConfirm] = useState<CardId | null>(null);
-  const [inspect, setInspect] = useState<CardId | null>(null);
+  const [sheet, setSheet] = useState<null | { kind: 'card'; id: CardId } | { kind: 'moves' } | { kind: 'menu' }>(null);
   const live = history[liveIdx]!.state;
   const shownIdx = view ?? liveIdx;
   const shown = history[shownIdx]!;
@@ -189,22 +187,22 @@ export function GameScreen(p: GameScreenProps) {
   const canAct = viewing ? null : actor;
 
   useEffect(() => setSoundEnabled(settings.sound), [settings.sound]);
-  useEffect(() => { setTarget(null); setConfirm(null); setView(null); }, [liveIdx]);
-  // Sounds for new entries.
+  useEffect(() => { setTarget(null); setConfirm(null); setView(null); setSheet((s) => (s?.kind === 'card' ? null : s)); }, [liveIdx]);
+
   const prevLen = useRef(history.length);
   useEffect(() => {
     if (history.length > prevLen.current) {
       const e = history[history.length - 1]!;
       if (e.state.winner) {
         const me = p.self ?? null;
-        if (me && e.state.winner === me) sound.win(); else if (me && e.state.winner !== 'draw') sound.lose(); else sound.notify();
-      } else if (e.kind === 'move') (e.captured ? sound.capture : sound.move)();
+        if (me && e.state.winner === me) { sound.win(); haptic('win'); } else if (me && e.state.winner !== 'draw') sound.lose(); else sound.notify();
+      } else if (e.kind === 'move') { (e.captured ? sound.capture : sound.move)(); haptic(e.captured ? 'capture' : 'move'); }
       else if (e.kind === 'card') sound.card();
       else if (e.kind === 'pick') sound.pick();
     }
     prevLen.current = history.length;
   }, [history, p.self]);
-  // Keyboard navigation.
+
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
@@ -216,14 +214,30 @@ export function GameScreen(p: GameScreenProps) {
     return () => window.removeEventListener('keydown', on);
   }, [liveIdx]);
 
+  // Keep the guided element (card chip or square) on screen on small phones.
+  useEffect(() => {
+    if (!p.guide && !p.guideCard) return;
+    const t = setTimeout(() => {
+      const el = document.querySelector('.hchip.guide, .tcg.guide, .sq.guide');
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (r.top < 60 || r.bottom > window.innerHeight - 80) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [p.guide, p.guideCard, liveIdx, target]);
+
   const orientation: Color = flip ? (p.orientation === 'w' ? 'b' : 'w') : p.orientation;
   const options = useMemo(() => (target && canAct ? targetOptions(live, canAct, target.id, target.picked) : []), [target, live, canAct]);
   const top: Color = orientation === 'w' ? 'b' : 'w';
   const offer = actor ? live.cards[actor].offer : null;
   const myColor = p.self ?? actor ?? p.orientation;
+  const hand = live.cards[myColor];
+  const isReady = (id: CardId) => !!canAct && CARDS[id]?.kind === 'active' && cardReady(live, canAct, id);
+  const go = (i: number) => setView(i >= liveIdx ? null : Math.max(0, i));
 
   function startCard(id: CardId) {
-    if (!canAct || !cardReady(live, canAct, id)) return;
+    if (!isReady(id)) return;
+    setSheet(null);
     const def = CARDS[id]!;
     if (!def.targets?.length) setConfirm(id);
     else setTarget({ id, picked: [] });
@@ -231,108 +245,165 @@ export function GameScreen(p: GameScreenProps) {
   function addTarget(sq: Square) {
     if (!target) return;
     const picked = [...target.picked, sq];
+    haptic('tap');
     if (picked.length === (CARDS[target.id]!.targets?.length ?? 0)) { setTarget(null); p.onCard(target.id, picked); }
     else setTarget({ ...target, picked });
   }
+  function tapCard(id: CardId) {
+    if (!mobile && isReady(id)) return startCard(id);
+    setSheet({ kind: 'card', id });
+  }
 
-  const hand = live.cards[myColor];
-  const targetPrompt = target ? CARDS[target.id]!.targets![target.picked.length]?.prompt : null;
-  const go = (i: number) => setView(i >= liveIdx ? null : Math.max(0, i));
+  const boardGuide = viewing ? null
+    : target ? (p.guide && p.guide.squares[target.picked.length] !== undefined ? { squares: [p.guide.squares[target.picked.length]!], label: p.guide.label } : null)
+      : p.guideCard ? null : p.guide;
+
+  const board = (
+    <Board
+      state={state}
+      orientation={orientation}
+      actor={target ? null : canAct}
+      lastMove={shown.last}
+      targeting={target && !viewing ? { options, picked: target.picked } : null}
+      guide={boardGuide}
+      onMove={p.onMove}
+      onTarget={addTarget}
+      onCancelTarget={() => setTarget(null)}
+    />
+  );
+
+  const statusNode = (viewing || target || p.status) ? (
+    <>
+      {viewing && (
+        <div className="notice info"><ListOrdered /><span className="grow">{shownIdx}번째 기록을 보고 있어요</span><button className="btn sm" onClick={() => setView(null)}>현재로</button></div>
+      )}
+      {target ? (
+        <div className="notice info">
+          <Layers /><span className="grow"><b>{CARDS[target.id]!.name}</b> · {CARDS[target.id]!.targets![target.picked.length]?.prompt}{options.length === 0 ? ' (고를 수 있는 칸이 없어요)' : ''}</span>
+          <button className="btn sm" onClick={() => setTarget(null)}>취소</button>
+        </div>
+      ) : !viewing && p.status}
+    </>
+  ) : null;
+
+  const handCards = [...hand.hand.map((id) => [id, false] as const), ...hand.used.map((id) => [id, true] as const)];
+  const menuItems: MenuItem[] = [
+    { label: '판 뒤집기', icon: <Repeat />, onClick: () => setFlip((x) => !x) },
+    { label: '설정', icon: <SettingsIcon />, onClick: openSettings },
+    ...(p.menu ?? []),
+  ];
+
+  const sheets = (
+    <>
+      {offer && offer.length > 0 && !p.hideDraft && actor && !live.winner && (
+        <DraftSheet key={live.cards[actor].draftsTaken} offer={offer} round={live.cards[actor].draftsTaken} onPick={p.onPick} />
+      )}
+      {confirm && (
+        <Sheet onClose={() => setConfirm(null)}>
+          <h2>{josa(`“${CARDS[confirm]!.name}”`, '을/를')} 쓸까요?</h2>
+          <p className="muted" style={{ margin: '8px 0 18px' }}>{CARDS[confirm]!.description}</p>
+          <div className="row" style={{ justifyContent: 'flex-end' }}>
+            <button className="btn" onClick={() => setConfirm(null)}>취소</button>
+            <button className="btn primary" onClick={() => { const id = confirm; setConfirm(null); p.onCard(id, []); }}>사용하기</button>
+          </div>
+        </Sheet>
+      )}
+      {sheet?.kind === 'card' && (
+        <CardSheet id={sheet.id} onClose={() => setSheet(null)} onUse={hand.hand.includes(sheet.id) && isReady(sheet.id) ? () => startCard(sheet.id) : undefined} useGuide={p.guideCard === sheet.id} />
+      )}
+      {sheet?.kind === 'moves' && (
+        <Sheet onClose={() => setSheet(null)} label="기보">
+          <div className="row between" style={{ marginBottom: 8 }}><h2>기보</h2><button className="icon-btn" onClick={() => setSheet(null)} aria-label="닫기"><X /></button></div>
+          <MoveList history={history} view={shownIdx} onSelect={(i) => { go(i); setSheet(null); }} />
+        </Sheet>
+      )}
+      {sheet?.kind === 'menu' && (
+        <Sheet onClose={() => setSheet(null)} label="메뉴">
+          <div className="sheet-menu">
+            {menuItems.map((m) => (
+              <button key={m.label} className={m.danger ? 'danger' : ''} disabled={m.disabled} onClick={() => { setSheet(null); m.onClick(); }}>{m.icon}{m.label}</button>
+            ))}
+          </div>
+        </Sheet>
+      )}
+      {p.overlay}
+    </>
+  );
+
+  if (mobile) {
+    return (
+      <div className="m-game">
+        {p.title !== undefined && (
+          <div className="m-top">
+            <button className="icon-btn" onClick={p.onBack ?? (() => history.length && window.history.back())} aria-label="뒤로"><ChevronLeft /></button>
+            <span className="title ellipsis">{p.title}</span>
+            <button className="icon-btn" onClick={openSettings} aria-label="설정"><SettingsIcon /></button>
+          </div>
+        )}
+        <div className="m-status">{statusNode}</div>
+        <PlayerStrip color={top} info={p.players[top]} state={state} onInspect={(id) => setSheet({ kind: 'card', id })} />
+        {board}
+        <PlayerStrip color={orientation} info={p.players[orientation]} state={state} onInspect={(id) => setSheet({ kind: 'card', id })} />
+        <div className="m-hand">
+          {handCards.length === 0 && <span className="empty">아직 카드가 없어요. 내 0·10·20번째 수에 카드를 골라요.</span>}
+          {handCards.map(([id, used]) => (
+            <CardChip key={id} def={CARDS[id]!} used={used} ready={!used && isReady(id)} guide={p.guideCard === id && !target}
+              selected={target?.id === id} onClick={() => tapCard(id)} />
+          ))}
+        </div>
+        <nav className="m-actions" aria-label="대국 메뉴">
+          <button onClick={() => setSheet({ kind: 'moves' })} disabled={p.showMoves === false}><ListOrdered />기보</button>
+          <button onClick={() => go(shownIdx - 1)} disabled={shownIdx === 0}><ChevronLeft />이전</button>
+          <button onClick={() => go(shownIdx + 1)} disabled={!viewing}><ChevronRight />다음</button>
+          <button onClick={() => setFlip((x) => !x)}><Repeat />뒤집기</button>
+          <button onClick={() => setSheet({ kind: 'menu' })}><Ellipsis />메뉴</button>
+        </nav>
+        {sheets}
+      </div>
+    );
+  }
 
   return (
     <div className="game">
       <div className="game-board-col">
-        <PlayerStrip color={top} info={p.players[top]} state={state} onInspect={setInspect} />
-        <Board
-          state={state}
-          orientation={orientation}
-          actor={target ? null : canAct}
-          lastMove={shown.last}
-          targeting={target && !viewing ? { options, picked: target.picked } : null}
-          guide={viewing ? null : target ? (p.guide && p.guide.squares[target.picked.length] !== undefined ? { squares: [p.guide.squares[target.picked.length]!], label: p.guide.label } : null) : p.guideCard ? null : p.guide}
-          onMove={p.onMove}
-          onTarget={addTarget}
-          onCancelTarget={() => setTarget(null)}
-        />
-        <PlayerStrip color={orientation} info={p.players[orientation]} state={state} onInspect={setInspect} />
+        <PlayerStrip color={top} info={p.players[top]} state={state} onInspect={(id) => setSheet({ kind: 'card', id })} />
+        {board}
+        <PlayerStrip color={orientation} info={p.players[orientation]} state={state} onInspect={(id) => setSheet({ kind: 'card', id })} />
       </div>
-
-      <div className="game-status">
-        {viewing && (
-          <div className="viewing-banner">
-            <span className="grow">{shownIdx}번째 기록을 보는 중이에요.</span>
-            <button className="btn sm" onClick={() => setView(null)}>현재로</button>
-          </div>
-        )}
-        {target ? (
-          <div className="status-line info row">
-            <span className="grow"><b>{CARDS[target.id]!.name}</b> · {targetPrompt}{options.length === 0 ? ' (고를 수 있는 칸이 없어요)' : ''}</span>
-            <button className="btn sm" onClick={() => setTarget(null)}>취소</button>
-          </div>
-        ) : p.status}
-      </div>
-
+      <div className="game-status">{statusNode}</div>
       <aside className="game-side">
-        <div className="side-panel">
-          <div className="hand">
-            <div className="row between">
-              <span className="eyebrow">{p.self || actor ? '내 카드' : `${myColor === 'w' ? '백' : '흑'} 카드`}</span>
-              <span className="muted" style={{ fontSize: 12.5 }}>액티브: 한 차례에 한 장 · 차례를 쓰지 않음</span>
+        <div className="side-box">
+          <div className="side-h"><span>{p.self || actor ? '내 카드' : `${myColor === 'w' ? '백' : '흑'} 카드`}</span><span style={{ fontWeight: 600, fontSize: 12.5 }}>액티브는 차례를 쓰지 않아요</span></div>
+          {handCards.length === 0 ? <div className="hand-empty">아직 카드가 없어요. 내 0·10·20번째 수에 카드를 골라요.</div> : (
+            <div className="hand-chips">
+              {handCards.map(([id, used]) => (
+                <CardChip key={id} def={CARDS[id]!} used={used} ready={!used && isReady(id)} guide={p.guideCard === id && !target}
+                  selected={target?.id === id} onClick={() => tapCard(id)} />
+              ))}
             </div>
-            {hand.hand.length + hand.used.length === 0 ? (
-              <div className="muted" style={{ fontSize: 13.5, padding: '6px 0' }}>아직 카드가 없어요. 내 0·10·20번째 수에 드래프트가 열려요.</div>
-            ) : (
-              <div className="hand-cards">
-                {hand.hand.map((id) => {
-                  const d = CARDS[id]!;
-                  const ready = !!canAct && d.kind === 'active' && cardReady(live, canAct, id);
-                  return (
-                    <CardView key={id} def={d} compact selected={target?.id === id} guide={p.guideCard === id && !target}
-                      disabled={d.kind === 'active' && !ready}
-                      onClick={ready ? () => startCard(id) : () => setInspect(id)} />
-                  );
-                })}
-                {hand.used.map((id) => <CardView key={id} def={CARDS[id]!} compact used onClick={() => setInspect(id)} />)}
-              </div>
-            )}
-          </div>
+          )}
         </div>
-
-        {(p.showMoves ?? true) && (
-          <div className="side-panel">
-            <div className="side-tabs"><button className="on">기보<span className="count">{history.filter((e) => e.kind === 'move').length}</span></button></div>
+        {(p.showMoves ?? true) ? (
+          <div className="side-box">
+            <div className="side-h"><span>기보</span><span className="mono">{history.filter((e) => e.kind === 'move').length}수</span></div>
             <MoveList history={history} view={shownIdx} onSelect={go} />
             <div className="nav-row">
-              <button className="btn ghost" onClick={() => go(0)} aria-label="처음">⏮</button>
-              <button className="btn ghost" onClick={() => go(shownIdx - 1)} aria-label="이전">◀</button>
-              <button className="btn ghost" onClick={() => go(shownIdx + 1)} aria-label="다음">▶</button>
-              <button className="btn ghost" onClick={() => setView(null)} aria-label="현재">⏭</button>
-              <button className="btn ghost" onClick={() => setFlip((x) => !x)} title="판 뒤집기 (F)">⇅</button>
-              <button className="btn ghost" onClick={openSettings} title="설정">⚙</button>
+              <button className="icon-btn" onClick={() => go(0)} aria-label="처음"><ChevronFirst /></button>
+              <button className="icon-btn" onClick={() => go(shownIdx - 1)} aria-label="이전"><ChevronLeft /></button>
+              <button className="icon-btn" onClick={() => go(shownIdx + 1)} aria-label="다음"><ChevronRight /></button>
+              <button className="icon-btn" onClick={() => setView(null)} aria-label="현재"><ChevronLast /></button>
+              <button className="icon-btn" onClick={() => setFlip((x) => !x)} title="판 뒤집기 (F)"><Repeat /></button>
+              <button className="icon-btn" onClick={openSettings} title="설정"><SettingsIcon /></button>
             </div>
-            {p.controls && <div className="actions-row">{p.controls}</div>}
+            {p.menu && p.menu.length > 0 && (
+              <div className="ctrl-row">{p.menu.map((m) => <button key={m.label} className={`btn sm${m.danger ? ' danger' : ''}`} disabled={m.disabled} onClick={m.onClick}>{m.icon}{m.label}</button>)}</div>
+            )}
           </div>
+        ) : p.menu && p.menu.length > 0 && (
+          <div className="row wrap">{p.menu.map((m) => <button key={m.label} className={`btn sm${m.danger ? ' danger' : ''}`} onClick={m.onClick}>{m.icon}{m.label}</button>)}</div>
         )}
-        {!(p.showMoves ?? true) && p.controls && <div className="actions-row" style={{ padding: 0 }}>{p.controls}</div>}
       </aside>
-
-      {offer && offer.length > 0 && !p.hideDraft && actor && !live.winner && (
-        <DraftModal key={live.cards[actor].draftsTaken} offer={offer} round={live.cards[actor].draftsTaken} onPick={p.onPick} />
-      )}
-      {confirm && (
-        <div className="modal-backdrop" onClick={() => setConfirm(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{josa(`“${CARDS[confirm]!.name}”`, '을/를')} 쓸까요?</h2>
-            <p className="muted" style={{ margin: '6px 0 18px' }}>{CARDS[confirm]!.description}</p>
-            <div className="row" style={{ justifyContent: 'flex-end' }}>
-              <button className="btn" onClick={() => setConfirm(null)}>취소</button>
-              <button className="btn primary" onClick={() => { const id = confirm; setConfirm(null); p.onCard(id, []); }}>사용하기</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {inspect && <CardInfoModal id={inspect} onClose={() => setInspect(null)} />}
-      {p.overlay}
+      {sheets}
     </div>
   );
 }
@@ -343,17 +414,16 @@ export const REASON_TEXT: Record<string, string> = {
   agreement: '합의 무승부', abort: '대국 취소', abandon: '이탈', end: '종료',
 };
 
-export function ResultModal({ title, subtitle, delta, children }: { title: string; subtitle: string; delta?: number | null; children: ReactNode }) {
+export function ResultModal({ outcome, title, subtitle, delta, children }: { outcome: 'win' | 'lose' | 'draw'; title: string; subtitle: string; delta?: number | null; children: ReactNode }) {
   return (
-    <div className="modal-backdrop">
-      <div className="modal" role="dialog" aria-modal="true">
-        <div className="result-banner stack">
-          <div className="big">{title}</div>
-          <div className="muted">{subtitle}</div>
-          {delta != null && <div className={`delta ${delta >= 0 ? 'up' : 'down'}`}>레이팅 {delta >= 0 ? `+${delta}` : delta}</div>}
-          <div className="row wrap" style={{ justifyContent: 'center', marginTop: 10 }}>{children}</div>
-        </div>
+    <Sheet label="대국 결과">
+      <div className="result">
+        <div className={`emblem ${outcome}`}>{outcome === 'win' ? <Trophy /> : outcome === 'draw' ? <Handshake /> : <Flag />}</div>
+        <h2>{title}</h2>
+        <div className="why">{subtitle}</div>
+        {delta != null && <div className={`delta ${delta >= 0 ? 'up' : 'down'}`}>레이팅 {delta >= 0 ? `+${delta}` : delta}</div>}
+        <div className="row wrap" style={{ justifyContent: 'center', marginTop: 18 }}>{children}</div>
       </div>
-    </div>
+    </Sheet>
   );
 }

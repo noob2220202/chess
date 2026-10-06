@@ -27,14 +27,14 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
   }
 
   return (
-    <form className="panel pad stack" style={{ gap: 16 }} onSubmit={submit}>
-      <div className="seg" style={{ alignSelf: 'flex-start' }}>
+    <form className="stack" style={{ gap: 16 }} onSubmit={submit}>
+      <div className="seg" style={{ alignSelf: 'stretch', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
         <button type="button" className={mode === 'login' ? 'on' : ''} onClick={() => setMode('login')}>로그인</button>
         <button type="button" className={mode === 'register' ? 'on' : ''} onClick={() => setMode('register')}>회원가입</button>
       </div>
       <div className="field">
         <label htmlFor="u">아이디</label>
-        <input id="u" className="input" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="3~16자 한글·영문·숫자·_" required />
+        <input id="u" className="input" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={username} onChange={(e) => setUsername(e.target.value)} placeholder="3~16자 한글, 영문, 숫자, _" required />
       </div>
       <div className="field">
         <label htmlFor="p">비밀번호</label>
@@ -42,7 +42,7 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
       </div>
       {err && <p className="error-text" role="alert">{err}</p>}
       <button className="btn primary lg block" disabled={busy}>{busy ? '잠시만요…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
-      {mode === 'register' && <p className="muted" style={{ fontSize: 13 }}>가입하면 레이팅 1500에서 시작해요. 이메일 등 개인정보는 받지 않아요.</p>}
+      {mode === 'register' && <p className="muted center" style={{ fontSize: 13 }}>레이팅 1500에서 시작해요. 이메일 같은 개인정보는 받지 않아요.</p>}
     </form>
   );
 }
@@ -50,8 +50,12 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
 export default function Login() {
   const next = new URLSearchParams(location.search).get('next') ?? '/play/online';
   return (
-    <div className="main" style={{ maxWidth: 460 }}>
-      <div className="page-head"><div><div className="eyebrow">계정</div><h1>레이팅전에 참가하기</h1><p>온라인 대전에는 계정이 필요해요.</p></div></div>
+    <div className="page" style={{ maxWidth: 440 }}>
+      <div className="center" style={{ margin: '12px 0 26px' }}>
+        <img src="/icon-192.png" alt="" style={{ width: 72, height: 72, borderRadius: 18, margin: '0 auto 14px', boxShadow: 'var(--shadow-2)' }} />
+        <h1 style={{ fontSize: 26, fontWeight: 850 }}>레이팅전에 참가하기</h1>
+        <p className="muted" style={{ marginTop: 4 }}>온라인 대전에는 계정이 필요해요.</p>
+      </div>
       <AuthForm onDone={() => navigate(next.startsWith('/') ? next : '/')} />
     </div>
   );

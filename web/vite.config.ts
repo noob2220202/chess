@@ -10,7 +10,7 @@ function serviceWorker(): Plugin {
     generateBundle(_opts, bundle) {
       const files = Object.keys(bundle).filter((f) => !f.endsWith('.map'));
       const version = Date.now().toString(36);
-      const precache = ['/', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png',
+      const precache = ['/', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png',
         ...['w', 'b'].flatMap((c) => ['P', 'N', 'B', 'R', 'Q', 'K'].map((t) => `/pieces/${c}${t}.svg`)),
         ...files.map((f) => '/' + f)];
       const src = `const CACHE = 'augment-${version}';

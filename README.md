@@ -68,4 +68,7 @@ Fly.io / Render / Railway 같은 서비스는 이 Dockerfile을 그대로 쓰고
 
 ## 크레딧
 
-체스 기물 그림: Colin M.L. Burnett (Cburnett), CC BY-SA 3.0. 카드 이름·효과·아트·UI는 이 프로젝트의 오리지널입니다.
+- 체스 기물 그림: Colin M.L. Burnett (Cburnett), CC BY-SA 3.0
+- 카드 일러스트 아이콘: game-icons.net (Lorc, Delapouite 외), CC BY 3.0 — `npm --prefix web run gen:icons`로 사용하는 60개만 추출
+- UI 아이콘: Lucide (ISC) · 글꼴: Pretendard (OFL)
+- 카드 이름·효과·카드 프레임·앱 디자인은 이 프로젝트의 오리지널입니다.
