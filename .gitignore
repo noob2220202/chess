@@ -3,3 +3,5 @@ node_modules/
 dist/
 web/android/
 web/ios/
+deploy/.env
+deploy/backups/
