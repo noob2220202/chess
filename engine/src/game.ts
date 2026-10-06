@@ -222,22 +222,28 @@ function endTurn(s: GameState, mover: Color, irreversible: boolean): GameState {
 // ---------------------------------------------------------------------------
 // Tutorial / encyclopedia demos
 
+/** Turn a hand-built position into a sandbox (White always to move): applies passives' setup and starts the turn. */
+export function startSandbox(s: GameState): GameState {
+  s.sandbox = true;
+  s.turn = 'w';
+  for (const c of ['w', 'b'] as const) {
+    for (const cid of s.cards[c].hand) {
+      const d = CARDS[cid];
+      if (d && d.kind === 'passive') d.onAcquire?.(s, c);
+    }
+  }
+  startTurn(s);
+  return s;
+}
+
 export function demoState(id: CardId): GameState {
   const def = CARDS[id];
   if (!def) throw new Error(`unknown card ${id}`);
   const s = fromPlacement(def.demo.board);
-  s.sandbox = true;
   s.cards.w.hand = [...(def.demo.white ?? [id])];
   s.cards.b.hand = [...(def.demo.black ?? [])];
-  for (const c of ['w', 'b'] as const) {
-    for (const cid of s.cards[c].hand) {
-      const d = CARDS[cid]!;
-      if (d.kind === 'passive') d.onAcquire?.(s, c);
-    }
-  }
   def.demo.setup?.(s);
-  startTurn(s);
-  return s;
+  return startSandbox(s);
 }
 
 /** Apply a learner action to a demo state, returning the action record for goal checks. */
