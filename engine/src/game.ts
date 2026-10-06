@@ -162,11 +162,12 @@ export function isLegal(s: GameState, m: Move): boolean {
   return legalMoves(s).some((x) => sameMove(x, m));
 }
 
-export function applyMove(s: GameState, m: Move): GameState {
+/** Apply a move. `trusted` skips the legality check (search code that generated the move itself). */
+export function applyMove(s: GameState, m: Move, trusted = false): GameState {
   if (s.winner) throw new Error('game is over');
   const mover = s.turn;
   if (s.cards[mover].offer) throw new Error('draft pending');
-  if (!isLegal(s, m)) throw new Error('illegal move');
+  if (!trusted && !isLegal(s, m)) throw new Error('illegal move');
   const piece = s.board[m.from]!;
   const capSq = captureSquare(s, m);
   const captured = capSq >= 0 ? s.board[capSq]! : null;
