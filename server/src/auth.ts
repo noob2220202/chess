@@ -23,8 +23,8 @@ export const hashToken = (t: string): string => crypto.createHash('sha256').upda
 
 export const USERNAME_RE = /^[A-Za-z0-9_가-힣]{3,16}$/;
 export function validateCredentials(username: unknown, password: unknown): string | null {
-  if (typeof username !== 'string' || !USERNAME_RE.test(username)) return '아이디는 3~16자의 한글, 영문, 숫자, _ 만 쓸 수 있어요.';
-  if (typeof password !== 'string' || password.length < 8 || password.length > 128) return '비밀번호는 8자 이상이어야 해요.';
+  if (typeof username !== 'string' || !USERNAME_RE.test(username)) return '아이디는 3~16자의 한글, 영문, 숫자, _ 만 쓸 수 있습니다.';
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) return '비밀번호는 8자 이상이어야 합니다.';
   return null;
 }
 

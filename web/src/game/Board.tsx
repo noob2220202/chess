@@ -237,7 +237,7 @@ function PromotionPicker({ color, onPick, onCancel }: { color: Color; onPick: (t
   return (
     <div className="backdrop" style={{ position: 'absolute', placeItems: 'center' }} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={onCancel}>
       <div className="surface pad" onClick={(e) => e.stopPropagation()}>
-        <div className="eyebrow" style={{ marginBottom: 10 }}>어떤 기물로 승진할까요?</div>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>어떤 기물로 승진하시겠습니까?</div>
         <div className="row">
           {(['Q', 'R', 'B', 'N'] as const).map((t) => (
             <button key={t} className="btn" style={{ width: 64, height: 64, padding: 6, background: 'var(--sq-light)' }} onClick={() => onPick(t)} aria-label={PIECE_NAME[t]}>

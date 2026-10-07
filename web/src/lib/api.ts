@@ -23,7 +23,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
       body: init.body ? JSON.stringify(init.body) : undefined,
     });
   } catch {
-    throw new ApiError(0, '서버에 연결할 수 없어요. 네트워크를 확인해 주세요.');
+    throw new ApiError(0, '서버에 연결할 수 없습니다. 네트워크를 확인해 주세요.');
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, data.error ?? `요청 실패 (${res.status})`);

@@ -63,7 +63,7 @@ export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: 
       setBurst((n) => n + 1);
       if (settings.sound) setTimeout(() => sound.success(), 180);
       onComplete?.();
-    } else if (c.winner) toast('게임이 끝났어요. 처음부터 다시 해 보세요.', 'error');
+    } else if (c.winner) toast('게임이 끝났습니다. 처음부터 다시 해 보세요.', 'error');
   }
 
   let guide = null;
@@ -101,7 +101,7 @@ export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: 
         orientation="w"
         self="w"
         actor={done ? null : 'w'}
-        players={{ w: { name: '나', sub: '백' }, b: { name: '연습 상대', sub: '흑 · 움직이지 않아요' } }}
+        players={{ w: { name: '나', sub: '백' }, b: { name: '연습 상대', sub: '흑 · 움직이지 않습니다' } }}
         onPick={() => {}}
         onCard={(id, sel) => act({ card: id, sel })}
         onMove={(move) => act({ move })}

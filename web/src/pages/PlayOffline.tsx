@@ -55,13 +55,13 @@ export default function PlayOffline({ kind }: { kind: Kind }) {
       <div className="head">
         <div className="eyebrow">{kind === 'ai' ? '혼자 연습하기' : '한 기기에서 둘이서'}</div>
         <h1>{kind === 'ai' ? 'AI 대전' : '로컬 2인 대전'}</h1>
-        <p>{kind === 'ai' ? '인터넷 없이도 둘 수 있어요. 레이팅에는 반영되지 않아요.' : '한 화면에서 번갈아 두는 친선전이에요.'}</p>
+        <p>{kind === 'ai' ? '인터넷 없이도 둘 수 있습니다. 레이팅에는 반영되지 않습니다.' : '한 화면에서 번갈아 두는 친선전입니다.'}</p>
       </div>
       {saved && (
         <div className="list" style={{ marginBottom: 22 }}>
           <button className="list-row" onClick={() => setGame(saved)}>
             <span className="ic amber"><Play /></span>
-            <span className="grow"><b>이어서 두기</b><small>{saved.actions.length}개의 기록이 저장돼 있어요</small></span>
+            <span className="grow"><b>이어서 두기</b><small>{saved.actions.length}개의 기록이 저장돼 있습니다</small></span>
             <ChevronRight className="chev" />
           </button>
           <button className="list-row" onClick={() => { remove(KEY(kind)); setSaved(null); }}>
@@ -95,7 +95,7 @@ export default function PlayOffline({ kind }: { kind: Kind }) {
         <button className={settings.mirror ? 'on' : ''} onClick={() => setSettings({ ...settings, mirror: true })}>같은 카드 (레이팅전 방식)</button>
         <button className={!settings.mirror ? 'on' : ''} onClick={() => setSettings({ ...settings, mirror: false })}>각자 다른 카드</button>
       </div>
-      <p className="muted" style={{ fontSize: 13.5, marginTop: 8 }}>{settings.mirror ? '두 사람이 매번 같은 카드 3장 중에서 골라요.' : '두 사람이 서로 다른 카드 3장을 제시받아요.'}</p>
+      <p className="muted" style={{ fontSize: 13.5, marginTop: 8 }}>{settings.mirror ? '두 사람이 매번 같은 카드 3장 중에서 고릅니다.' : '두 사람이 서로 다른 카드 3장을 제시받습니다.'}</p>
       <div style={{ marginTop: 28 }}><button className="btn primary lg block" onClick={() => start(settings)}>새 대국 시작</button></div>
     </div>
   );
@@ -164,7 +164,7 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
   }
 
   const resign = () => {
-    if (!confirm('기권할까요?')) return;
+    if (!confirm('기권하시겠습니까?')) return;
     setHist((h) => {
       const last = h[h.length - 1]!;
       const st = { ...last.state, winner: (g.kind === 'local' ? (last.state.turn === 'w' ? 'b' : 'w') : botColor!) as Color, endReason: 'resign' as const };
@@ -177,8 +177,8 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
     { label: '나가기', icon: <LogOut />, onClick: onExit },
   ];
 
-  const status = s.winner ? null : actor ? (g.kind === 'local' ? <div className="notice attn">{`${s.turn === 'w' ? '백' : '흑'} 차례예요.`}</div> : null) : (
-    <div className="notice"><span className="spinner" /> AI가 다음 수를 고민하고 있어요…</div>
+  const status = s.winner ? null : actor ? (g.kind === 'local' ? <div className="notice attn">{`${s.turn === 'w' ? '백' : '흑'} 차례입니다.`}</div> : null) : (
+    <div className="notice"><span className="spinner" /> AI 생각 중…</div>
   );
 
   return (

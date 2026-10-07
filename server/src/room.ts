@@ -153,8 +153,8 @@ export class Room {
   /** Apply a player's action. Throws a user-facing Error on invalid input. */
   act(userId: number, a: ClientAction): void {
     const me = this.colorOf(userId);
-    if (!me) throw new Error('이 대국의 참가자가 아니에요.');
-    if (this.tick()) throw new Error('대국이 이미 끝났어요.');
+    if (!me) throw new Error('이 대국의 참가자가 아닙니다.');
+    if (this.tick()) throw new Error('대국이 이미 끝났습니다.');
     const s = this.state;
     const now = this.now();
     const at = now - this.createdAt;
@@ -171,7 +171,7 @@ export class Room {
           if (this.drawOffer === other(me)) return this.agreeDraw();
           this.drawOffer = me;
         } else if (a.action === 'accept') {
-          if (this.drawOffer !== other(me)) throw new Error('받을 무승부 제안이 없어요.');
+          if (this.drawOffer !== other(me)) throw new Error('받을 무승부 제안이 없습니다.');
           return this.agreeDraw();
         } else {
           if (this.drawOffer === other(me)) this.drawOffer = null;
@@ -183,30 +183,30 @@ export class Room {
         break;
     }
 
-    if (s.turn !== me) throw new Error('상대 차례예요.');
+    if (s.turn !== me) throw new Error('상대 차례입니다.');
     if (a.type === 'pick') {
-      if (typeof a.id !== 'string') throw new Error('잘못된 카드예요.');
-      try { pickCard(s, me, a.id); } catch { throw new Error('고를 수 없는 카드예요.'); }
+      if (typeof a.id !== 'string') throw new Error('잘못된 카드입니다.');
+      try { pickCard(s, me, a.id); } catch { throw new Error('고를 수 없는 카드입니다.'); }
       this.record({ t: 'pick', c: me, id: a.id, at });
     } else if (a.type === 'card') {
       if (typeof a.id !== 'string' || !Array.isArray(a.sel) || a.sel.length > 4 || !a.sel.every((x) => Number.isInteger(x) && x >= 0 && x < 64)) {
-        throw new Error('잘못된 카드 사용이에요.');
+        throw new Error('잘못된 카드 사용입니다.');
       }
-      if (!canPlayCard(s, me, a.id, a.sel)) throw new Error('지금은 그 카드를 쓸 수 없어요.');
+      if (!canPlayCard(s, me, a.id, a.sel)) throw new Error('지금은 그 카드를 쓸 수 없습니다.');
       playCard(s, me, a.id, a.sel);
       this.record({ t: 'card', c: me, id: a.id, sel: a.sel, at });
     } else if (a.type === 'move') {
       const m = parseMove(a.move);
-      if (!m) throw new Error('잘못된 수예요.');
+      if (!m) throw new Error('잘못된 수입니다.');
       if (s.cards[me].offer) throw new Error('먼저 카드를 골라주세요.');
-      if (!isLegal(s, m)) throw new Error('둘 수 없는 수예요.');
+      if (!isLegal(s, m)) throw new Error('둘 수 없는 수입니다.');
       this.clocks[me] = this.remaining(me, now) + this.tc.incMs;
       applyMove(s, m, true);
       this.turnStartedAt = now;
       if (this.drawOffer === other(me)) this.drawOffer = null; // moving declines an offer
       this.record({ t: 'move', c: me, move: m, at });
     } else {
-      throw new Error('알 수 없는 동작이에요.');
+      throw new Error('알 수 없는 동작입니다.');
     }
 
     if (s.winner) {

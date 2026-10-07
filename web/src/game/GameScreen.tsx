@@ -154,7 +154,7 @@ function MoveList({ history, view, onSelect }: { history: HistEntry[]; view: num
     cur[e.color].push(i);
   });
   useEffect(() => { const el = ref.current; if (el) el.scrollTop = el.scrollHeight; }, [history.length]);
-  if (!rows.length) return <div className="moves" ref={ref}><div className="moves-empty">아직 둔 수가 없어요.</div></div>;
+  if (!rows.length) return <div className="moves" ref={ref}><div className="moves-empty">아직 둔 수가 없습니다.</div></div>;
   const cell = (idx: number[]) => {
     if (!idx.length) return <span className="mv" />;
     return (
@@ -288,11 +288,11 @@ export function GameScreen(p: GameScreenProps) {
   const statusNode = (viewing || target || p.status) ? (
     <>
       {viewing && (
-        <div className="notice info"><ListOrdered /><span className="grow">{shownIdx}번째 기록을 보고 있어요</span><button className="btn sm" onClick={() => setView(null)}>현재로</button></div>
+        <div className="notice info"><ListOrdered /><span className="grow">{shownIdx}번째 기록을 보고 있습니다</span><button className="btn sm" onClick={() => setView(null)}>현재로</button></div>
       )}
       {target ? (
         <div className="notice info">
-          <Layers /><span className="grow"><b>{CARDS[target.id]!.name}</b> · {CARDS[target.id]!.targets![target.picked.length]?.prompt}{options.length === 0 ? ' (고를 수 있는 칸이 없어요)' : ''}</span>
+          <Layers /><span className="grow"><b>{CARDS[target.id]!.name}</b> · {CARDS[target.id]!.targets![target.picked.length]?.prompt}{options.length === 0 ? ' (고를 수 있는 칸이 없습니다)' : ''}</span>
           <button className="btn sm" onClick={() => setTarget(null)}>취소</button>
         </div>
       ) : !viewing && p.status}
@@ -313,7 +313,7 @@ export function GameScreen(p: GameScreenProps) {
       )}
       {confirm && (
         <Sheet onClose={() => setConfirm(null)}>
-          <h2>{josa(`“${CARDS[confirm]!.name}”`, '을/를')} 쓸까요?</h2>
+          <h2>{josa(`“${CARDS[confirm]!.name}”`, '을/를')} 사용하시겠습니까?</h2>
           <p className="muted" style={{ margin: '8px 0 18px' }}>{CARDS[confirm]!.description}</p>
           <div className="row" style={{ justifyContent: 'flex-end' }}>
             <button className="btn" onClick={() => setConfirm(null)}>취소</button>
@@ -359,7 +359,7 @@ export function GameScreen(p: GameScreenProps) {
           <PlayerStrip color={orientation} info={p.players[orientation]} state={state} onInspect={(id) => setSheet({ kind: 'card', id })} />
         </div>
         <div className="m-hand">
-          {handCards.length === 0 && <span className="empty">아직 카드가 없어요. 내 0·10·20번째 수에 카드를 골라요.</span>}
+          {handCards.length === 0 && <span className="empty">아직 카드가 없습니다. 내 0·10·20번째 수에 카드를 고릅니다.</span>}
           {handCards.map(([id, used]) => (
             <CardChip key={id} def={CARDS[id]!} used={used} ready={!used && isReady(id)} guide={p.guideCard === id && !target}
               selected={target?.id === id} onClick={() => tapCard(id)} />
@@ -387,8 +387,8 @@ export function GameScreen(p: GameScreenProps) {
       <div className="game-status">{statusNode}</div>
       <aside className="game-side">
         <div className="side-box">
-          <div className="side-h"><span>{p.self || actor ? '내 카드' : `${myColor === 'w' ? '백' : '흑'} 카드`}</span><span style={{ fontWeight: 600, fontSize: 12.5 }}>액티브는 차례를 쓰지 않아요</span></div>
-          {handCards.length === 0 ? <div className="hand-empty">아직 카드가 없어요. 내 0·10·20번째 수에 카드를 골라요.</div> : (
+          <div className="side-h"><span>{p.self || actor ? '내 카드' : `${myColor === 'w' ? '백' : '흑'} 카드`}</span><span style={{ fontWeight: 600, fontSize: 12.5 }}>액티브는 차례를 쓰지 않습니다</span></div>
+          {handCards.length === 0 ? <div className="hand-empty">아직 카드가 없습니다. 내 0·10·20번째 수에 카드를 고릅니다.</div> : (
             <div className="hand-chips">
               {handCards.map(([id, used]) => (
                 <CardChip key={id} def={CARDS[id]!} used={used} ready={!used && isReady(id)} guide={p.guideCard === id && !target}
@@ -423,8 +423,8 @@ export function GameScreen(p: GameScreenProps) {
 }
 
 export const REASON_TEXT: Record<string, string> = {
-  'king-captured': '킹을 잡았어요', 'no-moves': '둘 수 있는 수가 없어요', 'card-win': '카드 효과로 승리', 'ply-limit': '300수에 도달했어요',
-  'quiet-limit': '100수 동안 잡거나 폰을 움직이지 않았어요', repetition: '같은 국면이 세 번 나왔어요', resign: '기권', timeout: '시간 초과',
+  'king-captured': '킹을 잡았습니다', 'no-moves': '둘 수 있는 수가 없습니다', 'card-win': '카드 효과로 승리', 'ply-limit': '300수에 도달했습니다',
+  'quiet-limit': '100수 동안 잡거나 폰을 움직이지 않았습니다', repetition: '같은 국면이 세 번 나왔습니다', resign: '기권', timeout: '시간 초과',
   agreement: '합의 무승부', abort: '대국 취소', abandon: '이탈', end: '종료',
 };
 

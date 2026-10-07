@@ -13,7 +13,7 @@ type Mode = 'rated' | 'casual';
 
 export const MODE_INFO: Record<Mode, { label: string; time: string; note: string }> = {
   casual: { label: '일반전', time: '5분 + 3초', note: '각자 다른 카드 · 레이팅 변동 없음' },
-  rated: { label: '레이팅전', time: '10분 + 5초', note: '같은 카드로 겨뤄요 · 레이팅에 반영' },
+  rated: { label: '레이팅전', time: '10분 + 5초', note: '같은 카드로 겨룹니다 · 레이팅에 반영' },
 };
 
 function useFriends() {
@@ -65,10 +65,10 @@ function InviteCard() {
   const offline = o.status !== 'online';
 
   async function share(c: Challenge) {
-    const text = `증강전에서 한 판 둬요! 앱의 친구 → 초대 코드에 ${c.code}를 입력해 주세요. (${MODE_INFO[c.mode].label} ${MODE_INFO[c.mode].time})`;
+    const text = `증강전에서 한 판 둡니다! 앱의 친구 → 초대 코드에 ${c.code}를 입력해 주세요. (${MODE_INFO[c.mode].label} ${MODE_INFO[c.mode].time})`;
     try {
       if (navigator.share) await navigator.share({ text });
-      else { await navigator.clipboard.writeText(c.code!); toast('코드를 복사했어요.'); }
+      else { await navigator.clipboard.writeText(c.code!); toast('코드를 복사했습니다.'); }
     } catch { /* share sheet dismissed */ }
   }
 
@@ -80,13 +80,13 @@ function InviteCard() {
             <b>내 초대 코드</b>
             <span className="chip accent">{MODE_INFO[mine.mode].label} · <Countdown until={mine.expires} /></span>
           </div>
-          <button className="invite-code" onClick={() => navigator.clipboard?.writeText(mine.code!).then(() => toast('코드를 복사했어요.'))} aria-label="코드 복사">
+          <button className="invite-code" onClick={() => navigator.clipboard?.writeText(mine.code!).then(() => toast('코드를 복사했습니다.'))} aria-label="코드 복사">
             {mine.code!.split('').map((ch, i) => <span key={i}>{ch}</span>)}
           </button>
-          <p className="muted" style={{ fontSize: 13.5, textAlign: 'center' }}>친구가 이 코드를 입력하면 바로 대국이 시작돼요.</p>
+          <p className="muted" style={{ fontSize: 13.5, textAlign: 'center' }}>친구가 이 코드를 입력하면 바로 대국이 시작됩니다.</p>
           <div className="row" style={{ gap: 8 }}>
             <button className="btn grow" onClick={() => o.cancel(mine.id)}>취소</button>
-            <button className="btn grow" onClick={() => navigator.clipboard?.writeText(mine.code!).then(() => toast('코드를 복사했어요.'))}><Copy />복사</button>
+            <button className="btn grow" onClick={() => navigator.clipboard?.writeText(mine.code!).then(() => toast('코드를 복사했습니다.'))}><Copy />복사</button>
             <button className="btn primary grow" onClick={() => share(mine)}><Share2 />공유</button>
           </div>
         </>
@@ -94,7 +94,7 @@ function InviteCard() {
         <>
           <div className="row" style={{ gap: 12 }}>
             <span className="ic violet"><Hash /></span>
-            <div className="grow"><b style={{ display: 'block' }}>초대 코드로 대국</b><small className="muted">친구 추가 없이 코드만 주고받으면 돼요</small></div>
+            <div className="grow"><b style={{ display: 'block' }}>초대 코드로 대국</b><small className="muted">친구 추가 없이 코드만 주고받으면 됩니다</small></div>
           </div>
           <form className="row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); if (code.trim().length === 6) o.accept({ code: code.trim() }); }}>
             <input className="input grow code-input" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
@@ -104,7 +104,7 @@ function InviteCard() {
           <button className="btn primary block" disabled={offline} onClick={() => setPicking(true)}><Send />새 초대 코드 만들기</button>
         </>
       )}
-      {picking && <ModePicker title="어떤 대국으로 초대할까요?" onClose={() => setPicking(false)} onPick={(m) => { o.invite(m); setPicking(false); }} />}
+      {picking && <ModePicker title="어떤 대국으로 초대하시겠습니까?" onClose={() => setPicking(false)} onPick={(m) => { o.invite(m); setPicking(false); }} />}
     </div>
   );
 }
@@ -137,7 +137,7 @@ function FriendRow({ f, onChallenge, onRemove }: { f: Friend; onChallenge: () =>
           </div>
           <div className="list">
             <button className="list-row" onClick={() => { setMenu(false); navigate(`/u/${f.username}`); }}><span className="ic slate"><Trophy /></span><span className="grow"><b>프로필 보기</b></span></button>
-            <button className="list-row" onClick={() => { setMenu(false); if (confirm(`${f.username}님을 친구에서 삭제할까요?`)) onRemove(); }}><span className="ic rose"><UserMinus /></span><span className="grow"><b>친구 삭제</b></span></button>
+            <button className="list-row" onClick={() => { setMenu(false); if (confirm(`${f.username}님을 친구에서 삭제하시겠습니까?`)) onRemove(); }}><span className="ic rose"><UserMinus /></span><span className="grow"><b>친구 삭제</b></span></button>
           </div>
         </Sheet>
       )}
@@ -156,7 +156,7 @@ export default function Friends() {
   if (!o.user) {
     return (
       <div className="page" style={{ maxWidth: 440 }}>
-        <div className="head"><div className="eyebrow">친구</div><h1>로그인하고 친구와 두기</h1><p>친구를 추가하거나 초대 코드로 바로 대국할 수 있어요.</p></div>
+        <div className="head"><div className="eyebrow">친구</div><h1>로그인하고 친구와 두기</h1><p>친구를 추가하거나 초대 코드로 바로 대국할 수 있습니다.</p></div>
         {o.status === 'connecting' ? <div className="spinner" /> : <AuthForm />}
       </div>
     );
@@ -168,7 +168,7 @@ export default function Friends() {
     setBusy(true);
     try {
       const r = await api<{ result: string }>('/api/friends/request', { body: { username: name.trim() } });
-      toast(r.result === 'accepted' ? `${name.trim()}님과 친구가 됐어요!` : '친구 요청을 보냈어요.');
+      toast(r.result === 'accepted' ? `${name.trim()}님과 친구가 되었습니다!` : '친구 요청을 보냈습니다.');
       setName('');
       reload();
     } catch (err) {
@@ -187,7 +187,7 @@ export default function Friends() {
       <div className="head">
         <div className="eyebrow">친구</div>
         <h1>친구와 대국</h1>
-        <p>{lists ? `친구 ${friends.length}명 · ${onlineCount}명 접속 중` : '친구 목록을 불러오는 중이에요…'}</p>
+        <p>{lists ? `친구 ${friends.length}명 · ${onlineCount}명 접속 중` : '불러오는 중…'}</p>
       </div>
 
       {o.outgoing.filter((c) => !c.code).map((c) => (
@@ -217,7 +217,7 @@ export default function Friends() {
                 <span className="avatar">{f.username.slice(0, 1).toUpperCase()}</span>
                 <span className="grow" style={{ minWidth: 0 }}><b className="ellipsis" style={{ display: 'block' }}>{f.username}</b><small>레이팅 {f.rating}{f.provisional ? '?' : ''}</small></span>
                 <button className="icon-btn" aria-label="거절" onClick={() => act('/api/friends/respond', { userId: f.id, accept: false })}><X /></button>
-                <button className="btn sm good" onClick={() => act('/api/friends/respond', { userId: f.id, accept: true }, `${f.username}님과 친구가 됐어요!`)}><Check />수락</button>
+                <button className="btn sm good" onClick={() => act('/api/friends/respond', { userId: f.id, accept: true }, `${f.username}님과 친구가 되었습니다!`)}><Check />수락</button>
               </div>
             ))}
           </div>
@@ -228,12 +228,12 @@ export default function Friends() {
       {lists === null ? <div className="spinner" /> : friends.length === 0 ? (
         <div className="empty">
           <img src="/pieces/wN.svg" alt="" />
-          <b>아직 친구가 없어요</b>
+          <b>아직 친구가 없습니다</b>
           <p className="muted">위에서 아이디로 친구를 추가하거나, 초대 코드를 만들어 보내 보세요.</p>
         </div>
       ) : (
         <div className="list">
-          {friends.map((f) => <FriendRow key={f.id} f={f} onChallenge={() => setTarget(f)} onRemove={() => act('/api/friends/remove', { userId: f.id }, '친구를 삭제했어요.')} />)}
+          {friends.map((f) => <FriendRow key={f.id} f={f} onChallenge={() => setTarget(f)} onRemove={() => act('/api/friends/remove', { userId: f.id }, '친구를 삭제했습니다.')} />)}
         </div>
       )}
 
@@ -252,15 +252,15 @@ export default function Friends() {
         </>
       )}
 
-      {target && <ModePicker title={`${target.username}님에게 대국 신청`} onClose={() => setTarget(null)} onPick={(m) => { o.challenge(target.id, m); setTarget(null); toast(`${target.username}님에게 대국을 신청했어요.`); }} />}
+      {target && <ModePicker title={`${target.username}님에게 대국 신청`} onClose={() => setTarget(null)} onPick={(m) => { o.challenge(target.id, m); setTarget(null); toast(`${target.username}님에게 대국을 신청했습니다.`); }} />}
     </div>
   );
 }
 
 const CLOSED_TEXT: Record<string, string> = {
-  declined: '상대가 대국 신청을 거절했어요.',
-  expired: '응답이 없어 대국 신청이 만료됐어요.',
-  offline: '상대가 접속을 끊어 신청이 취소됐어요.',
+  declined: '상대가 대국 신청을 거절했습니다.',
+  expired: '응답이 없어 대국 신청이 만료되었습니다.',
+  offline: '상대가 접속을 끊어 신청이 취소되었습니다.',
 };
 
 /** App-wide: incoming challenge popup, friend notifications, and jumping into a game when it starts. */
@@ -270,7 +270,7 @@ export function ChallengeLayer({ path }: { path: string }) {
   const [seenGame, setSeenGame] = useState<string | null>(null);
 
   useEffect(() => o.onNotice((n) => {
-    if (n.kind === 'friend-request') toast(`${n.from}님이 친구 요청을 보냈어요.`);
+    if (n.kind === 'friend-request') toast(`${n.from}님이 친구 요청을 보냈습니다.`);
     else if (n.mine && CLOSED_TEXT[n.reason]) toast(CLOSED_TEXT[n.reason]!);
   }), [o, toast]);
 
@@ -298,7 +298,7 @@ export function ChallengeLayer({ path }: { path: string }) {
           <span className="vs"><Swords /></span>
           <span className="avatar xl me-av">{o.user?.username.slice(0, 1).toUpperCase()}</span>
         </div>
-        <h2><b>{c.from.username}</b>님이 대국을 신청했어요</h2>
+        <h2><b>{c.from.username}</b>님이 대국을 신청했습니다</h2>
         <p className="muted">{info.label} · {info.time} · <Countdown until={c.expires} /></p>
         <div className="row" style={{ gap: 10, marginTop: 18 }}>
           <button className="btn lg grow" onClick={() => o.decline(c.id)}>거절</button>

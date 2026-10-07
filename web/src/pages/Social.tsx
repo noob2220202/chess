@@ -21,15 +21,15 @@ export function Leaderboard() {
       <div className="head">
         <div className="eyebrow">{data ? `시즌 ${data.season}` : '랭킹'}</div>
         <h1>리더보드</h1>
-        <p>배치 10판을 마친 플레이어만 표시돼요.</p>
+        <p>배치 10판을 마친 플레이어만 표시됩니다.</p>
       </div>
       {err && <p className="error-text">{err}</p>}
       {!data && !err && <div className="spinner" />}
       {data && data.rows.length === 0 && (
         <div className="surface pad center stack" style={{ padding: '36px 20px' }}>
           <img src="/pieces/wK.svg" alt="" style={{ width: 64, margin: '0 auto' }} />
-          <b style={{ fontSize: 17 }}>아직 랭킹에 오른 플레이어가 없어요</b>
-          <span className="muted">레이팅전 10판을 마치면 첫 번째 주인공이 될 수 있어요.</span>
+          <b style={{ fontSize: 17 }}>아직 랭킹에 오른 플레이어가 없습니다</b>
+          <span className="muted">레이팅전 10판을 마치면 첫 번째 주인공이 될 수 있습니다.</span>
           <div><button className="btn primary" onClick={() => navigate('/play/online')}><Swords />레이팅전 하기</button></div>
         </div>
       )}
@@ -77,7 +77,7 @@ export function Profile({ name }: { name: string }) {
         <div className="stat"><div className="v">{r.games ? Math.round(((r.wins + r.draws / 2) / r.games) * 100) : 0}%</div><div className="k">승률</div></div>
       </div>
       <div className="section-h"><h2>최근 대국</h2></div>
-      {d.games.length === 0 ? <p className="muted">아직 대국 기록이 없어요.</p> : (
+      {d.games.length === 0 ? <p className="muted">아직 대국 기록이 없습니다.</p> : (
         <div className="list">
           {d.games.map((g) => {
             const res = g.result === 'aborted' ? '취소' : g.result === 'draw' ? '무' : g.result === g.color ? '승' : '패';
@@ -179,22 +179,22 @@ export function About() {
       <div className="section-h" style={{ marginTop: 0 }}><h2>핵심 규칙</h2></div>
       <div className="list">
         {[
-          '상대 킹을 잡으면 이겨요. 체크와 체크메이트 규칙은 없어요.',
-          '내 0번째·10번째·20번째 수를 두기 직전에, 각각 오프닝·미들게임·엔드게임 카드 3장 중 1장을 골라요.',
-          '액티브 카드는 차례를 쓰지 않고, 한 차례에 한 장만 쓸 수 있어요.',
-          '둘 수 있는 수가 없으면 져요. 같은 국면이 세 번 나오거나, 양쪽 합쳐 100수 동안 기물을 잡지도 폰을 움직이지도 않거나, 300수에 도달하면 무승부예요.',
-          '레이팅전은 두 사람이 같은 카드 중에서 고르는 미러 드래프트, 10분에 한 수당 5초 추가, Glicko-2 레이팅을 써요. 배치 10판을 마치면 랭킹에 올라요. 30초 안에 첫 수를 두지 않으면 대국이 취소돼요.',
+          '상대 킹을 잡으면 이깁니다. 체크와 체크메이트 규칙은 없습니다.',
+          '내 0번째·10번째·20번째 수를 두기 직전에, 각각 오프닝·미들게임·엔드게임 카드 3장 중 1장을 고릅니다.',
+          '액티브 카드는 차례를 쓰지 않고, 한 차례에 한 장만 쓸 수 있습니다.',
+          '둘 수 있는 수가 없으면 집니다. 같은 국면이 세 번 나오거나, 양쪽 합쳐 100수 동안 기물을 잡지도 폰을 움직이지도 않거나, 300수에 도달하면 무승부입니다.',
+          '레이팅전은 두 사람이 같은 카드 중에서 고르는 미러 드래프트, 10분에 한 수당 5초 추가, Glicko-2 레이팅을 씁니다. 배치 10판을 마치면 랭킹에 오릅니다. 30초 안에 첫 수를 두지 않으면 대국이 취소됩니다.',
         ].map((t, i) => <div key={i} className="kv" style={{ justifyContent: 'flex-start', gap: 12 }}><b className="muted" style={{ flex: 'none' }}>{i + 1}</b><span>{t}</span></div>)}
       </div>
       <div className="section-h"><h2>크레딧</h2></div>
       <div className="list">
-        <div className="kv" style={{ display: 'block' }}>체스 기물 그림: Colin M.L. Burnett (Cburnett), <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA 3.0</a>. 특수 기물 배지는 이 그림을 조합해 만들었어요.</div>
+        <div className="kv" style={{ display: 'block' }}>체스 기물 그림: Colin M.L. Burnett (Cburnett), <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA 3.0</a>. 특수 기물 배지는 이 그림을 조합해 만들었습니다.</div>
         <div className="kv" style={{ display: 'block' }}>카드 일러스트 아이콘: <a href="https://game-icons.net" target="_blank" rel="noreferrer">game-icons.net</a> (Lorc, Delapouite 외), <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a>.</div>
         <div className="kv" style={{ display: 'block' }}>UI 아이콘: <a href="https://lucide.dev" target="_blank" rel="noreferrer">Lucide</a> (ISC). 글꼴: <a href="https://github.com/orioncactus/pretendard" target="_blank" rel="noreferrer">Pretendard</a> (OFL).</div>
-        <div className="kv" style={{ display: 'block' }} >카드 이름과 효과, 카드 프레임, 앱 디자인은 이 프로젝트에서 직접 만들었어요.</div>
+        <div className="kv" style={{ display: 'block' }} >카드 이름과 효과, 카드 프레임, 앱 디자인은 이 프로젝트에서 직접 만들었습니다.</div>
       </div>
       <div className="section-h"><h2>개인정보</h2></div>
-      <p className="muted">계정에는 아이디와 암호화한 비밀번호만 저장해요. 대국 기록과 카드 통계는 밸런스를 개선하는 데 써요. 튜토리얼 진행도와 설정은 이 기기에만 저장돼요.</p>
+      <p className="muted">계정에는 아이디와 암호화한 비밀번호만 저장합니다. 대국 기록과 카드 통계는 밸런스를 개선하는 데 씁니다. 튜토리얼 진행도와 설정은 이 기기에만 저장됩니다.</p>
     </div>
   );
 }

@@ -29,7 +29,7 @@ function InstallRow() {
         <img src="/icon-192.png" alt="" />
         <div className="grow">
           <b style={{ display: 'block' }}>Android 앱 받기</b>
-          <span className="muted" style={{ fontSize: 13 }}>APK를 내려받아 설치하면 바로 이 서버에 연결돼요</span>
+          <span className="muted" style={{ fontSize: 13 }}>APK를 내려받아 설치하면 바로 이 서버에 연결됩니다</span>
         </div>
         <a className="btn sm primary" style={{ marginBottom: 0 }} href="/download"><Download />받기</a>
         <button className="icon-btn" aria-label="닫기" onClick={() => { save('aa.install.hidden', true); setHidden(true); }}><X /></button>
@@ -42,7 +42,7 @@ function InstallRow() {
       <img src="/icon-192.png" alt="" />
       <div className="grow">
         <b style={{ display: 'block' }}>앱으로 설치하기</b>
-        <span className="muted" style={{ fontSize: 13 }}>{mode === 'ios' ? <>공유 버튼 <Share style={{ display: 'inline', width: 14, height: 14, verticalAlign: -2 }} /> → “홈 화면에 추가”를 눌러 주세요</> : '홈 화면에서 바로 열고, 오프라인에서도 AI와 둘 수 있어요'}</span>
+        <span className="muted" style={{ fontSize: 13 }}>{mode === 'ios' ? <>공유 버튼 <Share style={{ display: 'inline', width: 14, height: 14, verticalAlign: -2 }} /> → “홈 화면에 추가”를 눌러 주세요</> : '홈 화면에서 바로 열고, 오프라인에서도 AI와 둘 수 있습니다'}</span>
       </div>
       {mode === 'prompt' && <button className="btn sm primary" style={{ marginBottom: 0 }} onClick={install}><Download />설치</button>}
       <button className="icon-btn" aria-label="닫기" onClick={() => { save('aa.install.hidden', true); setHidden(true); }}><X /></button>
@@ -77,8 +77,8 @@ export default function Home() {
       <InstallRow />
       <div className="hello">
         <div className="grow">
-          <h1>{o.user ? `${o.user.username}님, 한 판 어때요?` : `${APP_NAME}에 오신 걸 환영해요`}</h1>
-          <p>{o.user && o.rating ? `레이팅 ${o.rating.rating}${o.rating.provisional ? ` · 배치 ${o.rating.games}/10판` : ''}` : '체스에 증강 카드를 더한 전략 게임이에요.'}</p>
+          <h1>{o.user ? `${o.user.username}님, 환영합니다` : `${APP_NAME}에 오신 걸 환영합니다`}</h1>
+          <p>{o.user && o.rating ? `레이팅 ${o.rating.rating}${o.rating.provisional ? ` · 배치 ${o.rating.games}/10판` : ''}` : '체스에 증강 카드를 더한 전략 게임입니다.'}</p>
         </div>
         {health && <span className="status-pill"><i />{health.online}명 접속 중</span>}
       </div>
@@ -89,7 +89,7 @@ export default function Home() {
             <div className="list" style={{ marginBottom: 14 }}>
               <button className="list-row" onClick={() => navigate('/learn/basics')}>
                 <span className="ic teal"><GraduationCap /></span>
-                <span className="grow"><b>처음이라면 5분 튜토리얼부터</b><small>보드 위에서 직접 두며 규칙을 익혀요</small></span>
+                <span className="grow"><b>처음이라면 5분 튜토리얼부터</b><small>보드 위에서 직접 두며 규칙을 익힙니다</small></span>
                 <ChevronRight className="chev" />
               </button>
             </div>
@@ -122,7 +122,7 @@ export default function Home() {
             </button>
             <button className="list-row" onClick={() => navigate(nextLesson ? `/learn/${nextLesson.id}` : '/learn')}>
               <span className="ic teal"><GraduationCap /></span>
-              <span className="grow"><b>{nextLesson ? '튜토리얼 이어가기' : '튜토리얼 복습'}</b><small>{nextLesson ? `다음: ${nextLesson.title}` : '모든 레슨을 마쳤어요'} · {prog.lessons.length}/{LESSONS.length}</small></span>
+              <span className="grow"><b>{nextLesson ? '튜토리얼 이어가기' : '튜토리얼 복습'}</b><small>{nextLesson ? `다음: ${nextLesson.title}` : '모든 레슨을 마쳤습니다'} · {prog.lessons.length}/{LESSONS.length}</small></span>
               <ChevronRight className="chev" />
             </button>
             <button className="list-row" onClick={() => navigate('/cards')}>
@@ -157,7 +157,7 @@ export default function Home() {
           <div className="section-h" style={{ marginTop: 0 }}><h2>랭킹</h2><Link to="/leaderboard">전체 보기</Link></div>
           <div className="list">
             {top === null && <div className="kv"><span className="spinner" /></div>}
-            {top && top.length === 0 && <div className="kv"><span className="muted" style={{ fontSize: 14 }}>배치 10판을 마친 플레이어가 아직 없어요.</span></div>}
+            {top && top.length === 0 && <div className="kv"><span className="muted" style={{ fontSize: 14 }}>배치 10판을 마친 플레이어가 아직 없습니다.</span></div>}
             {top?.map((r) => (
               <div className="rank-row" key={r.username}>
                 <span className={`medal${r.rank <= 3 ? ` m${r.rank}` : ''}`}>{r.rank}</span>
@@ -178,7 +178,7 @@ export default function Home() {
           ) : (
             <div className="surface pad stack" style={{ marginTop: 14, gap: 10 }}>
               <b>레이팅전에 참가하세요</b>
-              <p className="muted" style={{ fontSize: 14 }}>아이디와 비밀번호만 있으면 가입할 수 있어요. 1500점에서 시작해요.</p>
+              <p className="muted" style={{ fontSize: 14 }}>아이디와 비밀번호만 있으면 가입할 수 있습니다. 1500점에서 시작합니다.</p>
               <Link to="/login?next=/" className="btn primary block">로그인 / 가입</Link>
             </div>
           )}

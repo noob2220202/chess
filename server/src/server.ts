@@ -222,10 +222,10 @@ export function createServer(opts: ServerOptions) {
       let user: User | null;
       if (route.endsWith('register')) {
         user = await store.createUser(body.username, await hashPassword(body.password));
-        if (!user) return json(res, 409, { error: '이미 사용 중인 아이디예요.' });
+        if (!user) return json(res, 409, { error: '이미 사용 중인 아이디입니다.' });
       } else {
         const u = await store.userByName(body.username);
-        if (!u || !(await verifyPassword(body.password, u.passwordHash))) return json(res, 401, { error: '아이디 또는 비밀번호가 맞지 않아요.' });
+        if (!u || !(await verifyPassword(body.password, u.passwordHash))) return json(res, 401, { error: '아이디 또는 비밀번호가 맞지 않습니다.' });
         user = { id: u.id, username: u.username, createdAt: u.createdAt };
       }
       const token = newToken();
@@ -240,13 +240,13 @@ export function createServer(opts: ServerOptions) {
     }
     if (route === 'GET /api/me') {
       const user = await authUser(bearer(req));
-      if (!user) return json(res, 401, { error: '로그인이 필요해요.' });
+      if (!user) return json(res, 401, { error: '로그인이 필요합니다.' });
       const rating = await store.getRating(user.id, season);
       return json(res, 200, { user, rating: publicRating(rating), season, activeGame: userRoom.get(user.id) ?? null });
     }
     if (url.pathname.startsWith('/api/friends')) {
       const me = await authUser(bearer(req));
-      if (!me) return json(res, 401, { error: '로그인이 필요해요.' });
+      if (!me) return json(res, 401, { error: '로그인이 필요합니다.' });
       const notify = (...ids: number[]) => ids.forEach((id) => sendUser(id, { type: 'friends' }));
       if (route === 'GET /api/friends') {
         const lists = await store.friendLists(me.id);
@@ -264,20 +264,20 @@ export function createServer(opts: ServerOptions) {
       const body = await readBody(req);
       if (route === 'POST /api/friends/request') {
         const target = typeof body.username === 'string' ? await store.userByName(body.username.trim()) : null;
-        if (!target) return json(res, 404, { error: '그런 아이디의 플레이어가 없어요.' });
+        if (!target) return json(res, 404, { error: '그런 아이디의 플레이어가 없습니다.' });
         const r = await store.friendRequest(me.id, target.id);
-        if (r === 'self') return json(res, 400, { error: '나 자신은 친구로 추가할 수 없어요.' });
-        if (r === 'already-friends') return json(res, 409, { error: '이미 친구예요.' });
-        if (r === 'already-sent') return json(res, 409, { error: '이미 친구 요청을 보냈어요.' });
+        if (r === 'self') return json(res, 400, { error: '나 자신은 친구로 추가할 수 없습니다.' });
+        if (r === 'already-friends') return json(res, 409, { error: '이미 친구입니다.' });
+        if (r === 'already-sent') return json(res, 409, { error: '이미 친구 요청을 보냈습니다.' });
         notify(me.id, target.id);
         if (r === 'sent') sendUser(target.id, { type: 'friend-request', from: { id: me.id, username: me.username } });
         return json(res, 200, { result: r });
       }
       const other = Number(body.userId);
-      if (!Number.isInteger(other)) return json(res, 400, { error: '잘못된 요청이에요.' });
+      if (!Number.isInteger(other)) return json(res, 400, { error: '잘못된 요청입니다.' });
       if (route === 'POST /api/friends/respond') {
         const ok = await store.respondFriend(me.id, other, body.accept === true);
-        if (!ok) return json(res, 404, { error: '받은 친구 요청이 없어요.' });
+        if (!ok) return json(res, 404, { error: '받은 친구 요청이 없습니다.' });
         notify(me.id, other);
         return json(res, 200, { ok: true });
       }
@@ -296,7 +296,7 @@ export function createServer(opts: ServerOptions) {
     const um = url.pathname.match(/^\/api\/users\/([^/]+)$/);
     if (req.method === 'GET' && um) {
       const u = await store.userByName(decodeURIComponent(um[1]!));
-      if (!u) return json(res, 404, { error: '없는 사용자예요.' });
+      if (!u) return json(res, 404, { error: '없는 사용자입니다.' });
       const [rating, games] = await Promise.all([store.getRating(u.id, season), store.recentGames(u.id, 30)]);
       return json(res, 200, {
         user: { id: u.id, username: u.username, createdAt: u.createdAt }, rating: publicRating(rating), season,
@@ -310,7 +310,7 @@ export function createServer(opts: ServerOptions) {
     const gm = url.pathname.match(/^\/api\/games\/([^/]+)$/);
     if (req.method === 'GET' && gm) {
       const g = await store.getGame(gm[1]!);
-      if (!g || !g.result) return json(res, 404, { error: '없는 대국이에요.' });
+      if (!g || !g.result) return json(res, 404, { error: '없는 대국입니다.' });
       return json(res, 200, { game: g });
     }
     if (route === 'GET /api/cards/stats') {
@@ -367,7 +367,7 @@ export function createServer(opts: ServerOptions) {
       else if (req.method === 'GET' || req.method === 'HEAD') serveStatic(req, res, url);
       else json(res, 405, { error: 'method not allowed' });
     } catch (e: any) {
-      if (!res.headersSent) json(res, e.status ?? 500, { error: e.status ? e.message : '서버 오류가 발생했어요.' });
+      if (!res.headersSent) json(res, e.status ?? 500, { error: e.status ? e.message : '서버 오류가 발생했습니다.' });
       if (!e.status) log(`http error ${url.pathname}: ${e.stack ?? e}`);
     }
   });
@@ -392,13 +392,13 @@ export function createServer(opts: ServerOptions) {
 
     ws.on('message', async (raw) => {
       let msg: any;
-      try { msg = JSON.parse(raw.toString()); } catch { return send(ws, { type: 'error', message: '잘못된 메시지예요.' }); }
+      try { msg = JSON.parse(raw.toString()); } catch { return send(ws, { type: 'error', message: '잘못된 메시지입니다.' }); }
       if (!msg || typeof msg.type !== 'string') return;
       const user = users.get(ws);
       try {
         if (msg.type === 'auth') {
           const u = await authUser(msg.token);
-          if (!u) return send(ws, { type: 'error', code: 'auth', message: '로그인이 만료됐어요.' });
+          if (!u) return send(ws, { type: 'error', code: 'auth', message: '로그인이 만료되었습니다.' });
           users.set(ws, u);
           if (!sockets.has(u.id)) sockets.set(u.id, new Set());
           sockets.get(u.id)!.add(ws);
@@ -413,12 +413,12 @@ export function createServer(opts: ServerOptions) {
           return;
         }
         if (msg.type === 'ping') return send(ws, { type: 'pong', serverNow: Date.now() });
-        if (!user) return send(ws, { type: 'error', code: 'auth', message: '로그인이 필요해요.' });
+        if (!user) return send(ws, { type: 'error', code: 'auth', message: '로그인이 필요합니다.' });
 
         if (msg.type === 'queue') {
           const mode: QueueMode = msg.mode === 'rated' ? 'rated' : 'casual';
           const rid = userRoom.get(user.id);
-          if (rid && rooms.get(rid) && !rooms.get(rid)!.ended) return send(ws, { type: 'error', message: '진행 중인 대국이 있어요.' });
+          if (rid && rooms.get(rid) && !rooms.get(rid)!.ended) return send(ws, { type: 'error', message: '진행 중인 대국이 있습니다.' });
           const r = await store.getRating(user.id, season);
           queue.set(user.id, { userId: user.id, mode, rating: r.rating, joinedAt: Date.now() });
           sendUser(user.id, { type: 'queued', mode, since: Date.now() });
@@ -427,13 +427,13 @@ export function createServer(opts: ServerOptions) {
         if (msg.type === 'challenge') {
           const mode: QueueMode = msg.mode === 'rated' ? 'rated' : 'casual';
           const to = Number(msg.to);
-          if (!Number.isInteger(to) || to === user.id) return send(ws, { type: 'error', message: '잘못된 대국 신청이에요.' });
+          if (!Number.isInteger(to) || to === user.id) return send(ws, { type: 'error', message: '잘못된 대국 신청입니다.' });
           const last = rooms.get(userRoom.get(user.id) ?? '');
           const rematch = !!last?.friendly && [last.seats.w.userId, last.seats.b.userId].includes(to);
-          if (!rematch && !(await store.areFriends(user.id, to))) return send(ws, { type: 'error', message: '친구에게만 대국을 신청할 수 있어요.' });
-          if (!sockets.has(to)) return send(ws, { type: 'error', message: '친구가 지금 접속해 있지 않아요.' });
-          if (busy(to)) return send(ws, { type: 'error', message: '친구가 지금 대국 중이에요.' });
-          if (busy(user.id)) return send(ws, { type: 'error', message: '진행 중인 대국이 있어요.' });
+          if (!rematch && !(await store.areFriends(user.id, to))) return send(ws, { type: 'error', message: '친구에게만 대국을 신청할 수 있습니다.' });
+          if (!sockets.has(to)) return send(ws, { type: 'error', message: '친구가 지금 접속해 있지 않습니다.' });
+          if (busy(to)) return send(ws, { type: 'error', message: '친구가 지금 대국 중입니다.' });
+          if (busy(user.id)) return send(ws, { type: 'error', message: '진행 중인 대국이 있습니다.' });
           for (const c of [...challenges.values()]) if (c.from === user.id && c.to === to) closeChallenge(c, 'cancelled');
           const c: Challenge = { id: crypto.randomUUID(), from: user.id, fromName: user.username, to, toName: users.get([...sockets.get(to)!][0]!)?.username ?? null, mode, code: null, expires: Date.now() + 60_000 };
           challenges.set(c.id, c);
@@ -454,12 +454,12 @@ export function createServer(opts: ServerOptions) {
         if (msg.type === 'challenge-accept') {
           const code = typeof msg.code === 'string' ? msg.code.trim().toUpperCase() : null;
           const c = code ? [...challenges.values()].find((x) => x.code === code) : challenges.get(String(msg.id));
-          if (!c || (c.to !== null && c.to !== user.id)) return send(ws, { type: 'error', message: code ? '초대 코드를 찾을 수 없어요. 코드가 만료됐을 수 있어요.' : '대국 신청이 만료됐어요.' });
-          if (c.from === user.id) return send(ws, { type: 'error', message: '내가 만든 초대 코드예요. 친구에게 보내 주세요.' });
-          if (!sockets.has(c.from)) { closeChallenge(c, 'offline'); return send(ws, { type: 'error', message: '상대가 접속을 끊었어요.' }); }
+          if (!c || (c.to !== null && c.to !== user.id)) return send(ws, { type: 'error', message: code ? '초대 코드를 찾을 수 없습니다. 코드가 만료됐을 수 있습니다.' : '대국 신청이 만료되었습니다.' });
+          if (c.from === user.id) return send(ws, { type: 'error', message: '내가 만든 초대 코드입니다. 친구에게 보내 주세요.' });
+          if (!sockets.has(c.from)) { closeChallenge(c, 'offline'); return send(ws, { type: 'error', message: '상대가 접속을 끊었습니다.' }); }
           challenges.delete(c.id);
           const ok = await startGame(c.mode, c.from, user.id, true);
-          if (!ok) send(ws, { type: 'error', message: '지금은 대국을 시작할 수 없어요. 둘 중 한 명이 대국 중이에요.' });
+          if (!ok) send(ws, { type: 'error', message: '지금은 대국을 시작할 수 없습니다. 둘 중 한 명이 대국 중입니다.' });
           sendUser(c.from, { type: 'challenge-closed', id: c.id, reason: ok ? 'started' : 'cancelled' });
           return;
         }
@@ -474,7 +474,7 @@ export function createServer(opts: ServerOptions) {
         }
         if (['pick', 'card', 'move', 'resign', 'draw'].includes(msg.type)) {
           const room = rooms.get(String(msg.gameId ?? userRoom.get(user.id) ?? ''));
-          if (!room || room.ended) return send(ws, { type: 'error', message: '진행 중인 대국이 없어요.' });
+          if (!room || room.ended) return send(ws, { type: 'error', message: '진행 중인 대국이 없습니다.' });
           try {
             room.act(user.id, msg as ClientAction);
           } catch (e) {
@@ -490,7 +490,7 @@ export function createServer(opts: ServerOptions) {
         }
       } catch (e) {
         log(`ws error: ${(e as Error).stack ?? e}`);
-        send(ws, { type: 'error', message: '서버 오류가 발생했어요.' });
+        send(ws, { type: 'error', message: '서버 오류가 발생했습니다.' });
       }
     });
 

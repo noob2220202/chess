@@ -19,8 +19,8 @@ export function LearnIndex() {
     <div className="page narrow">
       <div className="head">
         <div className="eyebrow">배우기</div>
-        <h1>직접 두면서 배워요</h1>
-        <p>모든 레슨은 실제 보드에서 진행돼요. 다음에 누를 곳은 반짝이며 알려 드려요.</p>
+        <h1>직접 두면서 배웁니다</h1>
+        <p>모든 레슨은 실제 보드에서 진행됩니다. 다음에 누를 곳은 반짝이며 알려 드립니다.</p>
       </div>
       <div className="surface pad stack" style={{ gap: 10, marginBottom: 22 }}>
         <div className="row between"><b>레슨</b><span className="mono muted">{doneLessons}/{LESSONS.length}</span></div>
@@ -64,7 +64,7 @@ export function LessonPage({ id }: { id: string }) {
   const [stepDone, setStepDone] = useState(false);
   const [picked, setPicked] = useState<CardId | null>(null);
   const mobile = useIsMobile();
-  if (!lesson) return <div className="page"><h1>없는 레슨이에요</h1><Link to="/learn">배우기로</Link></div>;
+  if (!lesson) return <div className="page"><h1>없는 레슨입니다</h1><Link to="/learn">배우기로</Link></div>;
   const step = lesson.steps[i]!;
   const last = i === lesson.steps.length - 1;
   const canNext = !step.goal && !step.draft ? true : stepDone;
@@ -108,7 +108,7 @@ export function LessonPage({ id }: { id: string }) {
         {!mobile && header}
         <DemoPlayer
           key={`${lesson.id}-${i}`}
-          spec={{ build: () => buildStep(step), text: step.text, done: step.done ?? '좋아요!', goal: step.goal ?? (() => false) }}
+          spec={{ build: () => buildStep(step), text: step.text, done: step.done ?? '좋습니다!', goal: step.goal ?? (() => false) }}
           onComplete={() => setStepDone(true)}
           footer={(done) => (!mobile || done ? nav : null)}
           title={`${step.title} · ${i + 1}/${lesson.steps.length}`}

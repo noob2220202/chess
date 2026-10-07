@@ -54,7 +54,7 @@ export function CardView({ def, mini, used, disabled, selected, done, guide, rea
       <div className="t-text"><p>{def.description}</p></div>
       </div>
       {done && <span className="done"><Check strokeWidth={3.5} /></span>}
-      {ready && !used && <span className="ready-dot" title="지금 쓸 수 있어요" />}
+      {ready && !used && <span className="ready-dot" title="지금 쓸 수 있습니다" />}
     </Tag>
   );
 }

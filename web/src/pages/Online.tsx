@@ -17,7 +17,7 @@ export default function Online() {
   if (!o.user) {
     return (
       <div className="page" style={{ maxWidth: 440 }}>
-        <div className="head"><div className="eyebrow">온라인 대전</div><h1>로그인하고 대전하기</h1><p>아이디와 비밀번호만 있으면 바로 시작할 수 있어요.</p></div>
+        <div className="head"><div className="eyebrow">온라인 대전</div><h1>로그인하고 대전하기</h1><p>아이디와 비밀번호만 있으면 바로 시작할 수 있습니다.</p></div>
         {o.status === 'connecting' ? <div className="spinner" /> : <AuthForm />}
       </div>
     );
@@ -38,13 +38,13 @@ function Lobby() {
       <div className="head">
         <div className="eyebrow">시즌 {o.season}</div>
         <h1>온라인 대전</h1>
-        <p className="status-pill">{offline ? <>서버에 다시 연결하는 중이에요…</> : <><i />서버에 연결되어 있어요</>}</p>
+        <p className="status-pill">{offline ? <>서버 재연결 중…</> : <><i />서버에 연결되어 있습니다</>}</p>
       </div>
 
       {o.queue ? (
         <div className="surface pad center" style={{ padding: '30px 20px' }}>
           <div className="queue-orb"><img src="/pieces/bN.svg" alt="" /></div>
-          <h2>{o.queue.mode === 'rated' ? '레이팅전' : '일반전'} 상대를 찾고 있어요</h2>
+          <h2>{o.queue.mode === 'rated' ? '레이팅전' : '일반전'} 상대를 찾고 있습니다</h2>
           <p className="muted mono" style={{ margin: '8px 0 20px', fontSize: 18 }}>{Math.floor(waiting / 60)}:{String(waiting % 60).padStart(2, '0')}</p>
           <button className="btn" onClick={o.leaveQueue}>취소</button>
         </div>
@@ -130,14 +130,14 @@ function OnlineGame() {
 
   let status: React.ReactNode = null;
   if (!g.result) {
-    if (g.abortAt && actor) status = <div className="notice attn"><Timer /><span className="grow">{Math.max(0, Math.ceil((g.abortAt - serverNow) / 1000))}초 안에 첫 수를 두지 않으면 대국이 취소돼요.</span></div>;
+    if (g.abortAt && actor) status = <div className="notice attn"><Timer /><span className="grow">{Math.max(0, Math.ceil((g.abortAt - serverNow) / 1000))}초 안에 첫 수를 두지 않으면 대국이 취소됩니다.</span></div>;
     else if (g.drawOffer === opp) status = (
-      <div className="notice info"><Handshake /><span className="grow">상대가 무승부를 제안했어요.</span>
+      <div className="notice info"><Handshake /><span className="grow">상대가 무승부를 제안했습니다.</span>
         <button className="btn sm" onClick={() => send({ type: 'draw', action: 'decline' })}>거절</button>
         <button className="btn sm good" onClick={() => send({ type: 'draw', action: 'accept' })}>수락</button></div>
     );
-    else if (!actor && g.state.cards[opp].offer) status = <div className="notice"><span className="spinner" />상대가 카드를 고르고 있어요…</div>;
-    else if (o.status !== 'online') status = <div className="notice"><span className="spinner" />서버에 다시 연결하는 중이에요…</div>;
+    else if (!actor && g.state.cards[opp].offer) status = <div className="notice"><span className="spinner" />상대 카드 선택 중…</div>;
+    else if (o.status !== 'online') status = <div className="notice"><span className="spinner" />서버 재연결 중…</div>;
   }
 
   let overlay = null;
@@ -157,7 +157,7 @@ function OnlineGame() {
 
   const menu: MenuItem[] = g.result ? [] : [
     { label: g.drawOffer === you ? '무승부 제안함' : '무승부 제안', icon: <Handshake />, disabled: g.drawOffer === you, onClick: () => send({ type: 'draw', action: 'offer' }) },
-    { label: g.state.ply < 2 ? '대국 취소' : '기권', icon: <Flag />, danger: true, onClick: () => { if (confirm(g.state.ply < 2 ? '대국을 취소할까요?' : '기권할까요?')) send({ type: 'resign' }); } },
+    { label: g.state.ply < 2 ? '대국 취소' : '기권', icon: <Flag />, danger: true, onClick: () => { if (confirm(g.state.ply < 2 ? '대국을 취소하시겠습니까?' : '기권하시겠습니까?')) send({ type: 'resign' }); } },
   ];
 
   return (

@@ -15,8 +15,8 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
   if (!hasServer()) {
     return (
       <div className="surface pad stack" style={{ gap: 8 }}>
-        <b>온라인 서버가 아직 준비되지 않았어요</b>
-        <p className="muted" style={{ fontSize: 14 }}>AI 대전, 튜토리얼, 카드 연습은 지금 바로 할 수 있어요.</p>
+        <b>온라인 서버가 아직 준비되지 않았습니다</b>
+        <p className="muted" style={{ fontSize: 14 }}>AI 대전, 튜토리얼, 카드 연습은 지금 바로 할 수 있습니다.</p>
       </div>
     );
   }
@@ -51,8 +51,8 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
         <input id="p" className="input" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8자 이상" required />
       </div>
       {err && <p className="error-text" role="alert">{err}</p>}
-      <button className="btn primary lg block" disabled={busy}>{busy ? '잠시만요…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
-      {mode === 'register' && <p className="muted center" style={{ fontSize: 13 }}>레이팅 1500에서 시작해요. 이메일 같은 개인정보는 받지 않아요.</p>}
+      <button className="btn primary lg block" disabled={busy}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
+      {mode === 'register' && <p className="muted center" style={{ fontSize: 13 }}>레이팅 1500에서 시작합니다. 이메일 같은 개인정보는 받지 않습니다.</p>}
     </form>
   );
 }
@@ -64,7 +64,7 @@ export default function Login() {
       <div className="center" style={{ margin: '12px 0 26px' }}>
         <img src="/icon-192.png" alt="" style={{ width: 72, height: 72, borderRadius: 18, margin: '0 auto 14px', boxShadow: 'var(--shadow-2)' }} />
         <h1 style={{ fontSize: 26, fontWeight: 850 }}>레이팅전에 참가하기</h1>
-        <p className="muted" style={{ marginTop: 4 }}>온라인 대전에는 계정이 필요해요.</p>
+        <p className="muted" style={{ marginTop: 4 }}>온라인 대전에는 계정이 필요합니다.</p>
       </div>
       <AuthForm onDone={() => navigate(next.startsWith('/') ? next : '/')} />
     </div>

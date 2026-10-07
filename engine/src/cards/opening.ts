@@ -35,13 +35,13 @@ register(
       pawnMove(out, from, sq(file(from), r2), p.color);
       return out;
     },
-    demo: { board: '4k3/8/8/8/8/3P4/8/4K3', text: 'd3 폰을 d5까지 두 칸 전진시키세요.', done: '이미 움직인 폰도 두 칸씩 나아갈 수 있어요.', goal: moved('d3', 'd5') },
+    demo: { board: '4k3/8/8/8/8/3P4/8/4K3', text: 'd3 폰을 d5까지 두 칸 전진시키세요.', done: '이미 움직인 폰도 두 칸씩 나아갈 수 있습니다.', goal: moved('d3', 'd5') },
   },
   {
     id: 'knight-king', name: '기사왕', kind: 'passive', category: 'OPENING', stars: 3,
     description: '내 킹이 나이트처럼 뛸 수도 있습니다.',
     extraMoves: (s, from, p) => (p.type === 'K' ? leaps(s, from, p.color, KNIGHT) : []),
-    demo: { board: '4k3/8/8/8/8/5r2/8/4K3', text: '킹을 나이트처럼 뛰게 해서 f3의 룩을 잡으세요.', done: '킹이 나이트처럼 뛰었어요. 다만 킹이 앞으로 나갈수록 그만큼 위험해져요.', goal: moved('e1', 'f3') },
+    demo: { board: '4k3/8/8/8/8/5r2/8/4K3', text: '킹을 나이트처럼 뛰게 해서 f3의 룩을 잡으세요.', done: '킹이 나이트처럼 뛰었습니다. 다만 킹이 앞으로 나갈수록 그만큼 위험해집니다.', goal: moved('e1', 'f3') },
   },
   {
     id: 'trench', name: '참호', kind: 'passive', category: 'OPENING', stars: 2.5,
@@ -51,13 +51,13 @@ register(
       const p = at(s, m.from);
       return !(p && p.type === 'P' && Math.abs(m.to - m.from) === 16);
     },
-    demo: { board: '4k3/8/8/8/8/8/4P3/4K3', white: [], black: ['trench'], text: '상대가 참호를 가지고 있어요. e2 폰을 눌러 두 칸 전진이 막힌 걸 확인한 뒤, e3으로 한 칸 전진하세요.', done: '참호는 상대 폰이 빠르게 올라오는 걸 막아 줘요.', goal: moved('e2', 'e3') },
+    demo: { board: '4k3/8/8/8/8/8/4P3/4K3', white: [], black: ['trench'], text: '상대가 참호를 가지고 있습니다. e2 폰을 눌러 두 칸 전진이 막힌 걸 확인한 뒤, e3으로 한 칸 전진하세요.', done: '참호는 상대 폰이 빠르게 올라오는 걸 막아 줍니다.', goal: moved('e2', 'e3') },
   },
   {
     id: 'royal-guard', name: '근위대', kind: 'passive', category: 'OPENING', stars: 2.5,
     description: '내 킹은 폰에게 잡히지 않습니다.',
     protects: (s, a, t) => at(s, t)?.type === 'K' && at(s, a)?.type === 'P',
-    demo: { board: '4k3/8/8/2p5/8/4K3/8/8', text: 'c5의 폰이 d4를 노리고 있어요. 그래도 킹을 d4로 옮겨 보세요.', done: '근위대가 있으면 폰은 킹을 잡을 수 없어요.', goal: moved('e3', 'd4') },
+    demo: { board: '4k3/8/8/2p5/8/4K3/8/8', text: 'c5의 폰이 d4를 노리고 있습니다. 그래도 킹을 d4로 옮겨 보세요.', done: '근위대가 있으면 폰은 킹을 잡을 수 없습니다.', goal: moved('e3', 'd4') },
   },
   {
     id: 'archbishop', name: '대주교 서임', kind: 'passive', category: 'OPENING', stars: 3.5,
@@ -67,7 +67,7 @@ register(
       convertFirst(s, o, 'B', 'A', [sq(2, homeRank(o))]);
       absorbKnight(s, o, 1);
     },
-    demo: { board: '4k3/8/8/8/8/3r4/8/1NB1K3', text: 'b1 나이트를 흡수해서 c1 비숍이 대주교가 됐어요. 나이트처럼 뛰어 d3의 룩을 잡으세요.', done: '대주교는 비숍처럼도, 나이트처럼도 움직여요.', goal: moved('c1', 'd3') },
+    demo: { board: '4k3/8/8/8/8/3r4/8/1NB1K3', text: 'b1 나이트를 흡수해서 c1 비숍이 대주교가 되었습니다. 나이트처럼 뛰어 d3의 룩을 잡으세요.', done: '대주교는 비숍처럼도, 나이트처럼도 움직입니다.', goal: moved('c1', 'd3') },
   },
   {
     id: 'chancellor', name: '재상 임명', kind: 'passive', category: 'OPENING', stars: 3.5,
@@ -77,7 +77,7 @@ register(
       convertFirst(s, o, 'R', 'C', [sq(7, homeRank(o))]);
       absorbKnight(s, o, 6);
     },
-    demo: { board: '4k3/8/8/8/8/6r1/8/4K1NR', text: 'g1 나이트를 흡수해서 h1 룩이 재상이 됐어요. 나이트처럼 뛰어 g3의 룩을 잡으세요.', done: '재상은 룩처럼도, 나이트처럼도 움직여요.', goal: moved('h1', 'g3') },
+    demo: { board: '4k3/8/8/8/8/6r1/8/4K1NR', text: 'g1 나이트를 흡수해서 h1 룩이 재상이 되었습니다. 나이트처럼 뛰어 g3의 룩을 잡으세요.', done: '재상은 룩처럼도, 나이트처럼도 움직입니다.', goal: moved('h1', 'g3') },
   },
   {
     id: 'outriders', name: '척후병', kind: 'passive', category: 'OPENING', stars: 3,
@@ -88,7 +88,7 @@ register(
         if (p && p.color === o && p.type === 'P' && (file(i) === 0 || file(i) === 7)) p.type = 'G';
       }
     },
-    demo: { board: '4k3/8/8/8/8/8/Pp6/4K3', text: 'a2 폰이 근위병이 됐어요. 옆으로 한 칸 움직여 b2의 폰을 잡으세요.', done: '근위병은 모든 방향으로 한 칸씩 움직이고 잡을 수 있어요.', goal: moved('a2', 'b2') },
+    demo: { board: '4k3/8/8/8/8/8/Pp6/4K3', text: 'a2 폰이 근위병이 되었습니다. 옆으로 한 칸 움직여 b2의 폰을 잡으세요.', done: '근위병은 모든 방향으로 한 칸씩 움직이고 잡을 수 있습니다.', goal: moved('a2', 'b2') },
   },
   {
     id: 'phase-bishop', name: '투과 사격', kind: 'passive', category: 'OPENING', stars: 3,
@@ -97,7 +97,7 @@ register(
       p.type === 'B' || p.type === 'A'
         ? slides(s, from, p.color, DIAG, (x) => x.color === src.owner && x.type === 'P')
         : [],
-    demo: { board: '4k3/8/8/5r2/8/3P4/8/1B2K3', text: 'b1 비숍으로 d3의 내 폰을 통과해 f5의 룩을 잡으세요.', done: '폰 뒤에 있는 비숍도 바로 공격할 수 있어요.', goal: moved('b1', 'f5') },
+    demo: { board: '4k3/8/8/5r2/8/3P4/8/1B2K3', text: 'b1 비숍으로 d3의 내 폰을 통과해 f5의 룩을 잡으세요.', done: '폰 뒤에 있는 비숍도 바로 공격할 수 있습니다.', goal: moved('b1', 'f5') },
   },
   {
     id: 'lancers', name: '창병', kind: 'passive', category: 'OPENING', stars: 3,
@@ -110,13 +110,13 @@ register(
       if (t && t.color !== p.color) pawnMove(out, from, to, p.color);
       return out;
     },
-    demo: { board: '4k3/8/8/8/4n3/4P3/8/4K3', text: 'e3 폰으로 바로 앞 e4의 나이트를 잡으세요.', done: '창병 폰은 앞이 막혀도 정면을 찔러 뚫을 수 있어요.', goal: moved('e3', 'e4') },
+    demo: { board: '4k3/8/8/8/4n3/4P3/8/4K3', text: 'e3 폰으로 바로 앞 e4의 나이트를 잡으세요.', done: '창병 폰은 앞이 막혀도 정면을 찔러 뚫을 수 있습니다.', goal: moved('e3', 'e4') },
   },
   {
     id: 'wazir-knights', name: '기사 훈련', kind: 'passive', category: 'OPENING', stars: 2.5,
     description: '내 나이트는 상하좌우로 한 칸 움직이거나 잡을 수도 있습니다.',
     extraMoves: (s, from, p) => (p.type === 'N' ? leaps(s, from, p.color, ORTHO) : []),
-    demo: { board: '4k3/8/8/8/8/8/3Nr3/4K3', text: 'd2 나이트로 바로 옆 e2의 룩을 잡으세요.', done: '이제 나이트가 바로 옆 칸도 지킬 수 있어요.', goal: moved('d2', 'e2') },
+    demo: { board: '4k3/8/8/8/8/8/3Nr3/4K3', text: 'd2 나이트로 바로 옆 e2의 룩을 잡으세요.', done: '이제 나이트가 바로 옆 칸도 지킬 수 있습니다.', goal: moved('d2', 'e2') },
   },
   {
     id: 'reserve-knight', name: '예비 기병', kind: 'passive', category: 'OPENING', stars: 3,
@@ -132,8 +132,8 @@ register(
     },
     demo: {
       board: '4k3/8/8/8/8/8/4P3/4K3', setup: (s) => { s.cards.w.moves = 5; },
-      text: '지금 6수를 둔 상태예요. 한 수만 더 두면 7번째 차례에 나이트가 합류해요. e2 폰을 움직이세요.',
-      done: 'd1에 예비 기병이 도착했어요.', goal: pieceAt('d1', 'N'),
+      text: '지금 6수를 둔 상태입니다. 한 수만 더 두면 7번째 차례에 나이트가 합류합니다. e2 폰을 움직이세요.',
+      done: 'd1에 예비 기병이 도착했습니다.', goal: pieceAt('d1', 'N'),
     },
   },
   {
@@ -145,7 +145,7 @@ register(
         if (p && p.color === o && p.type === 'P' && (file(i) === 3 || file(i) === 4)) setStatus(s, i, 'shield', 16);
       }
     },
-    demo: { board: '4k3/8/8/2b5/8/8/3PP3/4K3', text: 'c5 비숍이 d4를 노리고 있지만, 방패를 두른 d2 폰을 d4로 밀어 보세요.', done: '방패가 있는 동안 폰은 잡히지 않아요. 중앙을 안전하게 차지하세요.', goal: moved('d2', 'd4') },
+    demo: { board: '4k3/8/8/2b5/8/8/3PP3/4K3', text: 'c5 비숍이 d4를 노리고 있지만, 방패를 두른 d2 폰을 d4로 밀어 보세요.', done: '방패가 있는 동안 폰은 잡히지 않습니다. 중앙을 안전하게 차지하세요.', goal: moved('d2', 'd4') },
   },
   {
     id: 'iron-rooks', name: '철옹성', kind: 'passive', category: 'OPENING', stars: 3,
@@ -154,7 +154,7 @@ register(
       const p = at(s, t);
       return !!p && (p.type === 'R' || p.type === 'C') && relRank(t, src.owner) === 0;
     },
-    demo: { board: '4k3/8/8/8/8/4K3/8/R6r', text: 'h1의 상대 룩이 1랭크를 노리고 있어요. 그래도 a1 룩을 d1로 옮겨 보세요.', done: '첫 줄에 있는 룩은 잡히지 않아요.', goal: moved('a1', 'd1') },
+    demo: { board: '4k3/8/8/8/8/4K3/8/R6r', text: 'h1의 상대 룩이 1랭크를 노리고 있습니다. 그래도 a1 룩을 d1로 옮겨 보세요.', done: '첫 줄에 있는 룩은 잡히지 않습니다.', goal: moved('a1', 'd1') },
   },
   {
     id: 'vanguard', name: '선봉대', kind: 'passive', category: 'OPENING', stars: 2,
@@ -166,7 +166,7 @@ register(
         if (p && p.color === o && p.type === 'P' && !at(s, to)) { s.board[to] = p; s.board[x] = null; p.moved = true; }
       }
     },
-    demo: { board: '4k3/8/8/8/8/8/2PPPP2/4K3', text: '가운데 폰 네 개가 이미 한 칸씩 나와 있어요. 아무 폰이나 한 칸 더 전진시키세요.', done: '선봉대로 중앙 공간을 먼저 차지했어요.', goal: (_s, a) => a.kind === 'move' && a.piece === 'P' },
+    demo: { board: '4k3/8/8/8/8/8/2PPPP2/4K3', text: '가운데 폰 네 개가 이미 한 칸씩 나와 있습니다. 아무 폰이나 한 칸 더 전진시키세요.', done: '선봉대로 중앙 공간을 먼저 차지했습니다.', goal: (_s, a) => a.kind === 'move' && a.piece === 'P' },
   },
   {
     id: 'guardian-pawns', name: '호위병', kind: 'passive', category: 'OPENING', stars: 3,
@@ -179,19 +179,19 @@ register(
       }
       return false;
     },
-    demo: { board: '4k3/8/8/1b6/8/3P4/8/4K3', text: 'b5 비숍이 d3 폰을 노려요. 킹을 d2로 옮겨 폰 바로 아래에 붙이세요.', done: '킹과 맞닿은 폰은 잡히지 않아요.', goal: moved('e1', 'd2') },
+    demo: { board: '4k3/8/8/1b6/8/3P4/8/4K3', text: 'b5 비숍이 d3 폰을 노립니다. 킹을 d2로 옮겨 폰 바로 아래에 붙이세요.', done: '킹과 맞닿은 폰은 잡히지 않습니다.', goal: moved('e1', 'd2') },
   },
   {
     id: 'camel-knights', name: '낙타 기병', kind: 'passive', category: 'OPENING', stars: 4,
     description: '내 나이트는 낙타처럼 (1,3) 모양으로도 뛸 수 있습니다.',
     extraMoves: (s, from, p) => (p.type === 'N' ? leaps(s, from, p.color, CAMEL) : []),
-    demo: { board: '4k3/8/8/8/1r6/8/8/N3K3', text: 'a1 나이트를 (1,3) 모양으로 뛰게 해서 b4의 룩을 잡으세요.', done: '나이트가 닿는 거리가 크게 늘어났어요.', goal: moved('a1', 'b4') },
+    demo: { board: '4k3/8/8/8/1r6/8/8/N3K3', text: 'a1 나이트를 (1,3) 모양으로 뛰게 해서 b4의 룩을 잡으세요.', done: '나이트가 닿는 거리가 크게 늘어났습니다.', goal: moved('a1', 'b4') },
   },
   {
     id: 'queen-guard', name: '여왕 친위대', kind: 'passive', category: 'OPENING', stars: 2,
     description: '내 퀸은 폰에게 잡히지 않습니다.',
     protects: (s, a, t) => at(s, t)?.type === 'Q' && at(s, a)?.type === 'P',
-    demo: { board: '4k3/8/8/2p5/8/8/8/3QK3', text: 'c5 폰이 d4를 노리고 있지만, 퀸을 d4로 옮겨 보세요.', done: '폰으로 퀸을 쫓아낼 수 없으니, 퀸이 일찍부터 활약할 수 있어요.', goal: moved('d1', 'd4') },
+    demo: { board: '4k3/8/8/2p5/8/8/8/3QK3', text: 'c5 폰이 d4를 노리고 있지만, 퀸을 d4로 옮겨 보세요.', done: '폰으로 퀸을 쫓아낼 수 없으니, 퀸이 일찍부터 활약할 수 있습니다.', goal: moved('d1', 'd4') },
   },
   {
     id: 'bishop-pair', name: '쌍비숍', kind: 'passive', category: 'OPENING', stars: 3,
@@ -201,7 +201,7 @@ register(
       const n = s.board.filter((x) => x && x.color === src.owner && x.type === 'B').length;
       return n >= 2 ? leaps(s, from, p.color, ORTHO) : [];
     },
-    demo: { board: '4k3/8/8/8/8/8/2r5/2B1KB2', text: 'c1 비숍으로 바로 위 c2의 룩을 잡으세요.', done: '비숍 둘을 지키면 한 가지 색 칸에만 묶이지 않아요.', goal: moved('c1', 'c2') },
+    demo: { board: '4k3/8/8/8/8/8/2r5/2B1KB2', text: 'c1 비숍으로 바로 위 c2의 룩을 잡으세요.', done: '비숍 둘을 지키면 한 가지 색 칸에만 묶이지 않습니다.', goal: moved('c1', 'c2') },
   },
   {
     id: 'flank-march', name: '측면 행군', kind: 'passive', category: 'OPENING', stars: 2,
@@ -211,7 +211,7 @@ register(
       const to = file(from) === 0 ? from + 1 : from - 1;
       return at(s, to) ? [] : [{ from, to }];
     },
-    demo: { board: '4k3/8/8/8/8/8/P7/4K3', text: 'a2 폰을 옆 칸 b2로 옮기세요.', done: '가장자리 폰을 가운데 쪽으로 옮길 수 있어요.', goal: moved('a2', 'b2') },
+    demo: { board: '4k3/8/8/8/8/8/P7/4K3', text: 'a2 폰을 옆 칸 b2로 옮기세요.', done: '가장자리 폰을 가운데 쪽으로 옮길 수 있습니다.', goal: moved('a2', 'b2') },
   },
   {
     id: 'fortified-center', name: '중앙 요새', kind: 'passive', category: 'OPENING', stars: 2.5,
@@ -222,7 +222,7 @@ register(
       if (relRank(m.to, src.owner) !== 2 || (file(m.to) !== 3 && file(m.to) !== 4)) return true;
       return at(s, m.to)?.type === 'K';
     },
-    demo: { board: '4k3/8/8/8/5N2/8/8/4K3', white: [], black: ['fortified-center'], text: '상대가 중앙 요새를 가지고 있어서 f4 나이트는 e6으로 갈 수 없어요. 대신 d5로 옮기세요.', done: '요새 칸에는 상대가 거점을 만들 수 없어요.', goal: moved('f4', 'd5') },
+    demo: { board: '4k3/8/8/8/5N2/8/8/4K3', white: [], black: ['fortified-center'], text: '상대가 중앙 요새를 가지고 있어서 f4 나이트는 e6으로 갈 수 없습니다. 대신 d5로 옮기세요.', done: '요새 칸에는 상대가 거점을 만들 수 없습니다.', goal: moved('f4', 'd5') },
   },
 );
 

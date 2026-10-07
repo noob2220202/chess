@@ -32,7 +32,7 @@ function Routes({ path }: { path: string }) {
   return (
     <div className="page center stack" style={{ paddingTop: 80 }}>
       <img src="/pieces/bN.svg" alt="" style={{ width: 80, margin: '0 auto' }} />
-      <h1>페이지를 찾을 수 없어요</h1>
+      <h1>페이지를 찾을 수 없습니다</h1>
       <div><Link to="/" className="btn primary">홈으로</Link></div>
     </div>
   );
@@ -88,7 +88,7 @@ export default function App() {
         </header>
         {inGame && (
           <Link to="/play/online" className="notice attn" style={{ margin: '8px 16px 0', color: 'var(--text)' }}>
-            <Swords /><span className="grow">진행 중인 온라인 대국이 있어요</span><b>돌아가기</b>
+            <Swords /><span className="grow">진행 중인 온라인 대국이 있습니다</span><b>돌아가기</b>
           </Link>
         )}
         <Routes path={path} />

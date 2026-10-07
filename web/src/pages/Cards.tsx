@@ -50,7 +50,7 @@ export function CardsIndex() {
       <div className="card-grid">
         {list.map((c) => <CardView key={c.id} def={c} done={prog.demos.includes(c.id)} onClick={() => navigate(`/cards/${c.id}`)} />)}
       </div>
-      {list.length === 0 && <p className="muted center" style={{ padding: 40 }}>조건에 맞는 카드가 없어요.</p>}
+      {list.length === 0 && <p className="muted center" style={{ padding: 40 }}>조건에 맞는 카드가 없습니다.</p>}
     </div>
   );
 }
@@ -61,7 +61,7 @@ export function CardPage({ id }: { id: string }) {
   const [, setDone] = useState(false);
   const mobile = useIsMobile();
   useEffect(() => { setTrying(false); setDone(false); }, [id]);
-  if (!def) return <div className="page"><h1>없는 카드예요</h1><Link to="/cards">카드 백과로</Link></div>;
+  if (!def) return <div className="page"><h1>없는 카드입니다</h1><Link to="/cards">카드 백과로</Link></div>;
   const idx = CARD_ORDER.indexOf(id);
   const prev = CARD_ORDER[(idx + CARD_ORDER.length - 1) % CARD_ORDER.length]!, next = CARD_ORDER[(idx + 1) % CARD_ORDER.length]!;
   const prog = getProgress();
@@ -135,7 +135,7 @@ export function CardStats() {
       <Link to="/cards" className="backlink"><ChevronLeft />카드 백과</Link>
       <div className="head" style={{ marginTop: 6 }}>
         <h1>카드 통계</h1>
-        <p>이번 시즌 레이팅전에서 각 카드를 가진 쪽의 승률이에요. 밸런스를 조정하는 근거가 돼요.</p>
+        <p>이번 시즌 레이팅전에서 각 카드를 가진 쪽의 승률입니다. 밸런스를 조정하는 근거가 됩니다.</p>
       </div>
       {err && <p className="error-text">{err}</p>}
       {!rows && !err && <div className="spinner" />}

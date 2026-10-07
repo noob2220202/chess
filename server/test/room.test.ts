@@ -36,7 +36,7 @@ test('server clocks: elapsed time is charged, increment added after a move', () 
 test('players cannot act out of turn or make illegal moves', () => {
   const { room } = mkRoom();
   assert.throws(() => room.act(2, { type: 'move', move: { from: 52, to: 36 } }), /상대 차례/);
-  assert.throws(() => room.act(99, { type: 'resign' }), /참가자가 아니/);
+  assert.throws(() => room.act(99, { type: 'resign' }), /참가자가 아닙니다/);
   room.act(1, { type: 'pick', id: room.state.cards.w.offer![0]! });
   assert.throws(() => room.act(1, { type: 'move', move: { from: 12, to: 44 } }), /둘 수 없는/);
   assert.throws(() => room.act(1, { type: 'move', move: { from: 12, to: 99 } as never }), /잘못된 수/);
