@@ -1,4 +1,5 @@
 import { seasonReset } from './glicko2.ts';
+import { deletedName } from './store.ts';
 import type { CardStatDelta, FriendLists, FriendRequestResult, GameRecord, LeaderRow, Rating, RatingUpdate, Store, User } from './store.ts';
 
 /** In-memory store for tests and quick local runs without Postgres. */
@@ -87,6 +88,13 @@ export class MemoryStore implements Store {
     if (i < 0) return false;
     if (accept) this.friendships[i]!.status = 'accepted'; else this.friendships.splice(i, 1);
     return true;
+  }
+  async deleteUser(userId: number) {
+    for (const [k, v] of this.sessions) if (v.userId === userId) this.sessions.delete(k);
+    for (const k of [...this.ratings.keys()]) if (k.startsWith(`${userId}:`)) this.ratings.delete(k);
+    this.friendships = this.friendships.filter((f) => f.from !== userId && f.to !== userId);
+    const u = this.users.find((x) => x.id === userId);
+    if (u) { u.username = deletedName(userId); u.passwordHash = '!'; }
   }
   async removeFriend(a: number, b: number) { this.friendships = this.friendships.filter((f) => !((f.from === a && f.to === b) || (f.from === b && f.to === a))); }
   async friendLists(userId: number): Promise<FriendLists> {

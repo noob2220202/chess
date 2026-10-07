@@ -58,5 +58,10 @@ export interface Store {
   removeFriend(a: number, b: number): Promise<void>;
   friendLists(userId: number): Promise<FriendLists>;
   areFriends(a: number, b: number): Promise<boolean>;
+  /** Delete an account: sessions, ratings and friendships go; past games stay under an anonymous name. */
+  deleteUser(userId: number): Promise<void>;
   close(): Promise<void>;
 }
+
+/** Name shown for a deleted account. Parentheses are not allowed in real usernames, so it never collides. */
+export const deletedName = (userId: number) => `(탈퇴${userId})`;

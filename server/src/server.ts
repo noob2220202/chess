@@ -213,7 +213,7 @@ export function createServer(opts: ServerOptions) {
   async function api(req: http.IncomingMessage, res: http.ServerResponse, url: URL) {
     const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.socket.remoteAddress || '?';
     const route = `${req.method} ${url.pathname}`;
-    if (route === 'GET /api/health') return json(res, 200, { ok: true, app: 'augment-arena', season, rooms: [...rooms.values()].filter((r) => !r.ended).length, queue: queue.size, online: sockets.size });
+    if (route === 'GET /api/health') return json(res, 200, { ok: true, app: 'augment-arena', season, rooms: [...rooms.values()].filter((r) => !r.ended).length, queue: queue.size, online: sockets.size, contact: config.contactEmail || null });
     if (route === 'POST /api/auth/register' || route === 'POST /api/auth/login') {
       if (!authLimiter.allow(ip)) return json(res, 429, { error: '잠시 후 다시 시도해 주세요.' });
       const body = await readBody(req);
@@ -236,6 +236,20 @@ export function createServer(opts: ServerOptions) {
     if (route === 'POST /api/auth/logout') {
       const t = bearer(req);
       if (t) await store.deleteSession(hashToken(t));
+      return json(res, 200, { ok: true });
+    }
+    if (route === 'POST /api/auth/delete') {
+      if (!authLimiter.allow(ip)) return json(res, 429, { error: '잠시 후 다시 시도해 주세요.' });
+      const user = await authUser(bearer(req));
+      if (!user) return json(res, 401, { error: '로그인이 필요합니다.' });
+      const body = await readBody(req);
+      const u = await store.userByName(user.username);
+      if (!u || typeof body.password !== 'string' || !(await verifyPassword(body.password, u.passwordHash))) return json(res, 401, { error: '비밀번호가 맞지 않습니다.' });
+      if (userRoom.has(user.id)) return json(res, 409, { error: '진행 중인 대국을 마친 뒤 탈퇴할 수 있습니다.' });
+      queue.delete(user.id);
+      await store.deleteUser(user.id);
+      for (const ws of sockets.get(user.id) ?? []) ws.close(4001, 'account deleted');
+      log(`account deleted: ${user.id}`);
       return json(res, 200, { ok: true });
     }
     if (route === 'GET /api/me') {

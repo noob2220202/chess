@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { Lightbulb, RotateCcw } from 'lucide-react';
 import type { DemoAction, GameState, Move, Square } from '@engine';
 import { CARDS, PIECE_NAME, cloneState, demoAct, solveDemo, squareName } from '@engine';
 import { GameScreen } from '../game/GameScreen.tsx';
@@ -8,14 +8,21 @@ import { useSettings } from '../lib/settings.tsx';
 import { sound } from '../lib/sound.ts';
 import { josa } from '../lib/korean.ts';
 import { useToast } from '../lib/toast.tsx';
-import { useIsMobile } from '../lib/ui.tsx';
 
 export interface DemoSpec {
+  /** Small heading above the instructions. */
+  heading?: string;
   build: () => GameState;
   text: string;
   done: string;
   goal: (s: GameState, a: DemoAction) => boolean;
+  /** Explain a move that misses the goal; the move is then taken back. */
+  wrong?: (s: GameState, a: DemoAction) => string | null;
 }
+
+type Planned = { move: Move } | { card: string; sel: Square[] };
+const same = (a: Planned, b: Planned) =>
+  'move' in a ? 'move' in b && a.move.from === b.move.from && a.move.to === b.move.to : 'card' in b && a.card === b.card;
 
 function Burst() {
   const bits = useMemo(() => Array.from({ length: 26 }, (_, i) => {
@@ -30,13 +37,14 @@ function Burst() {
   );
 }
 
-export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: DemoSpec; onComplete?: () => void; footer?: (done: boolean, reset: () => void) => ReactNode; title?: string; onBack?: () => void }) {
+export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: DemoSpec; onComplete?: () => void; footer?: (done: boolean, reset: () => void) => ReactNode; title?: ReactNode; onBack?: () => void }) {
   const { s: settings } = useSettings();
-  const mobile = useIsMobile();
   const [hist, setHist] = useState<HistEntry[]>(() => [startEntry(spec.build())]);
   const [done, setDone] = useState(false);
   const [burst, setBurst] = useState(0);
   const [showHint, setShowHint] = useState(settings.guide);
+  const [oops, setOops] = useState<string | null>(null);
+  const [undoing, setUndoing] = useState(false);
   const toast = useToast();
   const s = hist[hist.length - 1]!.state;
   const histRef = useRef(hist);
@@ -47,11 +55,14 @@ export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: 
   // Next action toward the goal, recomputed after every learner action.
   const plan = useMemo(() => (done ? null : solveDemo(s, spec.goal)), [s, spec, done]);
   const next = plan?.[0] ?? null;
+  const planRef = useRef(plan);
+  planRef.current = plan;
 
-  const reset = () => { setHist([startEntry(spec.build())]); setDone(false); };
+  const reset = () => { setHist([startEntry(spec.build())]); setDone(false); setOops(null); };
 
-  function act(a: { move: Move } | { card: string; sel: Square[] }) {
-    if (done) return;
+  function act(a: Planned) {
+    if (done || undoing) return;
+    setOops(null);
     const prev = histRef.current[histRef.current.length - 1]!;
     const c = cloneState(prev.state);
     let rec: DemoAction;
@@ -63,7 +74,19 @@ export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: 
       setBurst((n) => n + 1);
       if (settings.sound) setTimeout(() => sound.success(), 180);
       onComplete?.();
-    } else if (c.winner) toast('게임이 끝났습니다. 처음부터 다시 해 보세요.', 'error');
+      return;
+    }
+    // A move that cannot lead to the goal (or skips the one expected action) is taken back, like a coach would.
+    const expected = planRef.current;
+    const offPath = !!expected && !same(expected[0]!, a) && (expected.length === 1 || !solveDemo(c, spec.goal));
+    const why = spec.wrong?.(c, rec) ?? (offPath || c.winner ? '목표와 다른 수입니다. 다시 해 보세요.' : null);
+    if (why) {
+      setOops(why);
+      setShowHint(true);
+      sound.error();
+      setUndoing(true);
+      setTimeout(() => { setHist((h) => h.slice(0, -1)); setUndoing(false); }, 750);
+    }
   }
 
   let guide = null;
@@ -82,13 +105,13 @@ export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: 
   }
 
   const coach = (
-    <div className={`coach${done ? ' success' : ''}`}>
+    <div className={`coach${done ? ' success' : oops ? ' oops' : ''}`}>
       <div className="face"><img src="/pieces/wN.svg" alt="" /></div>
       <div className="stack grow" style={{ gap: 8 }}>
-        <p>{done ? spec.done : spec.text}</p>
-        {!done && hintText && <div className="step-hint">다음 할 일: {hintText}</div>}
+        {spec.heading && <b className="coach-h">{spec.heading}</b>}
+        <p>{done ? spec.done : oops ?? spec.text}</p>
+        {!done && !oops && hintText && <div className="step-hint">다음 할 일: {hintText}</div>}
         {!done && !showHint && next && <div><button className="btn sm" onClick={() => setShowHint(true)}>힌트 보기</button></div>}
-        {!done && !mobile && <div className="row" style={{ gap: 6 }}><button className="btn sm ghost" style={{ paddingLeft: 0 }} onClick={reset}><RotateCcw />처음부터</button></div>}
         {footer?.(done, reset)}
       </div>
     </div>
@@ -112,6 +135,10 @@ export function DemoPlayer({ spec, onComplete, footer, title, onBack }: { spec: 
         hideDraft
         showMoves={false}
         menu={[{ label: '처음부터 다시', icon: <RotateCcw />, onClick: reset }]}
+        tools={[
+          { label: '처음부터', icon: <RotateCcw />, onClick: reset, disabled: hist.length === 1 },
+          { label: '힌트', icon: <Lightbulb />, onClick: () => setShowHint(true), disabled: done || showHint || !next },
+        ]}
         title={title}
         onBack={onBack}
       />

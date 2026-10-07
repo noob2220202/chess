@@ -1,5 +1,9 @@
 # Production stack for a VPS: Postgres + game server on one port (default 5555, plain HTTP).
 # Usage: ./deploy/install.sh   (first time)   ·   ./deploy/update.sh   (after git pull)
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
 services:
   db:
     image: postgres:16-alpine
@@ -16,6 +20,7 @@ services:
       retries: 30
       start_period: 120s
     restart: unless-stopped
+    logging: *logging
 
   app:
     build: ..
@@ -23,12 +28,14 @@ services:
       DATABASE_URL: postgres://chess:${POSTGRES_PASSWORD}@db:5432/chess
       SEASON: ${SEASON:-1}
       PORT: 8080
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-}
     ports:
       - "${PUBLIC_PORT:-5555}:8080"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
+    logging: *logging
 
 volumes:
   pgdata:

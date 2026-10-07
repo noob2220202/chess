@@ -13,6 +13,8 @@ export const config = {
   season: Number(process.env.SEASON ?? 1),
   /** Where /download sends people for the Android app. */
   apkUrl: process.env.APK_URL ?? 'https://github.com/noob2220202/chess/releases/download/app-latest/augment-arena.apk',
+  /** Shown on the privacy policy and in the footer; set CONTACT_EMAIL in deploy/.env. */
+  contactEmail: process.env.CONTACT_EMAIL ?? '',
   sessionDays: 60,
   /** Ply count below which an unmoved player aborts the game instead of losing. */
   abortMs: Number(process.env.ABORT_MS ?? 30_000),

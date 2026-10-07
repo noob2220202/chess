@@ -1,3 +1,5 @@
+import { LESSON_RENAMES } from '../tutorial/lessons.ts';
+
 /** localStorage wrapper that never throws (private mode, blocked storage). */
 export function load<T>(key: string, fallback: T): T {
   try {
@@ -16,8 +18,16 @@ export function remove(key: string): void {
 
 const PROGRESS = 'aa.progress.v1';
 export interface Progress { lessons: string[]; demos: string[] }
-export const getProgress = (): Progress => load<Progress>(PROGRESS, { lessons: [], demos: [] });
+export function getProgress(): Progress {
+  const p = load<Progress>(PROGRESS, { lessons: [], demos: [] });
+  // Older, longer lessons were split; count them as their replacements.
+  for (const [old, now] of Object.entries(LESSON_RENAMES)) {
+    if (p.lessons.includes(old)) p.lessons = [...new Set([...p.lessons.filter((x) => x !== old), ...now])];
+  }
+  return p;
+}
 export function markProgress(kind: keyof Progress, id: string): void {
   const p = getProgress();
-  if (!p[kind].includes(id)) { p[kind].push(id); save(PROGRESS, p); }
+  if (!p[kind].includes(id)) p[kind].push(id);
+  save(PROGRESS, p);
 }

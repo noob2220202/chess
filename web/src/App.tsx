@@ -10,13 +10,14 @@ import { LearnIndex, LessonPage } from './pages/Learn.tsx';
 import Login from './pages/Login.tsx';
 import Online from './pages/Online.tsx';
 import PlayOffline from './pages/PlayOffline.tsx';
-import { About, Leaderboard, Profile, Replay } from './pages/Social.tsx';
+import { Leaderboard, Profile, Replay } from './pages/Social.tsx';
+import { Licenses, Privacy, Terms, useContact } from './pages/Legal.tsx';
 
 function Routes({ path }: { path: string }) {
   let m: Record<string, string> | null;
   if (path === '/') return <Home />;
   if (path === '/learn') return <LearnIndex />;
-  if ((m = match('/learn/:id', path))) return <LessonPage key={m.id} id={m.id!} />;
+  if ((m = match('/learn/:id', path))) return <LessonPage key={m.id} id={m.id === 'basics' ? 'check' : m.id === 'pieces' ? 'compound' : m.id!} />;
   if (path === '/cards') return <CardsIndex />;
   if (path === '/cards/stats') return <CardStats />;
   if ((m = match('/cards/:id', path))) return <CardPage id={m.id!} />;
@@ -28,7 +29,9 @@ function Routes({ path }: { path: string }) {
   if ((m = match('/u/:name', path))) return <Profile name={m.name!} />;
   if ((m = match('/game/:id', path))) return <Replay id={m.id!} />;
   if (path === '/login') return <Login />;
-  if (path === '/about') return <About />;
+  if (path === '/privacy') return <Privacy />;
+  if (path === '/terms') return <Terms />;
+  if (path === '/licenses' || path === '/about') return <Licenses />;
   return (
     <div className="page center stack" style={{ paddingTop: 80 }}>
       <img src="/pieces/bN.svg" alt="" style={{ width: 80, margin: '0 auto' }} />
@@ -47,6 +50,21 @@ const NAV = [
   { to: '/cards', icon: Layers, label: '카드' },
   { to: '/leaderboard', icon: Trophy, label: '랭킹' },
 ];
+
+function Footer() {
+  const contact = useContact();
+  return (
+    <footer className="site-foot">
+      <nav>
+        <Link to="/privacy"><b>개인정보처리방침</b></Link>
+        <Link to="/terms">이용약관</Link>
+        <Link to="/licenses">오픈소스 라이선스</Link>
+        {contact && <a href={`mailto:${contact}`}>문의</a>}
+      </nav>
+      <p>© {new Date().getFullYear()} {APP_NAME} ({APP_NAME_EN})</p>
+    </footer>
+  );
+}
 
 export default function App() {
   const path = usePath();
@@ -92,7 +110,7 @@ export default function App() {
           </Link>
         )}
         <Routes path={path} />
-        <footer className="site-foot"><Link to="/about">규칙 요약 · 크레딧 · 개인정보</Link></footer>
+        <Footer />
       </div>
 
       <ChallengeLayer path={path} />

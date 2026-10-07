@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Ellipsis, Flag, Handshake, Layers, ListOrdered, Repeat, Settings as SettingsIcon, Timer, Trophy, X,
+  ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Ellipsis, Flag, Handshake, Layers, ListOrdered, Repeat, Settings as SettingsIcon, Timer, X,
 } from 'lucide-react';
 import type { CardId, Color, GameState, Move, PieceType, Square } from '@engine';
 import { CARDS, OVERTIME_PLY, OVERTIME_QUIET, PIECE_VALUE, cardReady, notate, targetOptions } from '@engine';
@@ -45,7 +45,7 @@ export interface GameScreenProps {
   guideCard?: CardId | null;
   showMoves?: boolean;
   /** Mobile header. */
-  title?: string;
+  title?: ReactNode;
   onBack?: () => void;
 }
 
@@ -372,7 +372,14 @@ export function GameScreen(p: GameScreenProps) {
             {markIdx.length > 0 && <button className="btn sm" onClick={() => jumpMark(markIdx[0]!)}>처음부터</button>}</div>
         )
         : null;
-  const statusNode = reviewNode ?? ((viewing || target || p.status || extraMove || (!mobile && overtimeNode)) ? (
+  const resultBar = overlayReady && p.result && collapsed && !viewing ? (
+    <div className={`result-bar ${p.result.outcome}`}>
+      <span className="rb-badge">{p.result.outcome === 'win' ? '승' : p.result.outcome === 'lose' ? '패' : '무'}</span>
+      <span className="grow rb-text"><b>{p.result.title}</b><small>{p.result.reason}</small></span>
+      <button className="btn sm" onClick={() => setCollapsed(false)}>결과 보기</button>
+    </div>
+  ) : null;
+  const statusNode = reviewNode ?? resultBar ?? ((viewing || target || p.status || extraMove || (!mobile && overtimeNode)) ? (
     <>
       {viewing && (
         <div className="notice info"><ListOrdered /><span className="grow">{shownIdx}번째 기록을 보고 있습니다</span><button className="btn sm" onClick={() => setView(null)}>현재로</button></div>
@@ -433,9 +440,6 @@ export function GameScreen(p: GameScreenProps) {
           onViewBoard={() => setCollapsed(true)} onMoves={() => { setCollapsed(true); setSheet({ kind: 'moves' }); }}
           onReview={reviewDone ? undefined : startReview} />
       )}
-      {overlayReady && p.result && collapsed && (
-        <button className={`go-pill ${p.result.outcome}`} onClick={() => setCollapsed(false)}><Trophy />{p.result.title} · 결과 보기</button>
-      )}
       {celebrate && <Confetti />}
     </>
   );
@@ -463,9 +467,11 @@ export function GameScreen(p: GameScreenProps) {
           ))}
         </div>
         <nav className="m-actions" aria-label="대국 메뉴">
-          <button onClick={() => setSheet({ kind: 'moves' })} disabled={p.showMoves === false}><ListOrdered />기보</button>
-          <button onClick={() => go(shownIdx - 1)} disabled={shownIdx === 0}><ChevronLeft />이전</button>
-          <button onClick={() => go(shownIdx + 1)} disabled={!viewing}><ChevronRight />다음</button>
+          {p.showMoves !== false && <>
+            <button onClick={() => setSheet({ kind: 'moves' })}><ListOrdered />기보</button>
+            <button onClick={() => go(shownIdx - 1)} disabled={shownIdx === 0}><ChevronLeft />이전</button>
+            <button onClick={() => go(shownIdx + 1)} disabled={!viewing}><ChevronRight />다음</button>
+          </>}
           {p.tools?.length
             ? p.tools.map((t) => <button key={t.label} onClick={t.onClick} disabled={t.disabled}>{t.icon}{t.label}</button>)
             : <button onClick={() => setFlip((x) => !x)}><Repeat />뒤집기</button>}
@@ -485,7 +491,7 @@ export function GameScreen(p: GameScreenProps) {
       </div>
       <div className="game-status">{statusNode}</div>
       <aside className="game-side">
-        <div className="side-box">
+        {!(p.statusInline && handCards.length === 0) && <div className="side-box">
           <div className="side-h"><span>{p.self || actor ? '내 카드' : `${myColor === 'w' ? '백' : '흑'} 카드`}</span><span style={{ fontWeight: 600, fontSize: 12.5 }}>액티브는 차례를 쓰지 않습니다</span></div>
           {handCards.length === 0 ? <div className="hand-empty">아직 카드가 없습니다. 내 0·10·20번째 수에 카드를 고릅니다.</div> : (
             <div className="hand-chips">
@@ -495,7 +501,7 @@ export function GameScreen(p: GameScreenProps) {
               ))}
             </div>
           )}
-        </div>
+        </div>}
         {(p.showMoves ?? true) ? (
           <div className="side-box">
             <div className="side-h"><span>기보</span><span className="mono">{history.filter((e) => e.kind === 'move').length}수</span></div>

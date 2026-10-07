@@ -180,6 +180,27 @@ async function suite(name: string, makeStore: () => Promise<Store>) {
       await store.close();
     }
   });
+
+  test(`${name}: delete account`, async () => {
+    const store = await makeStore();
+    const app = createServer({ store, staticDir: null, matchIntervalMs: 50, log: () => {} });
+    await new Promise<void>((r) => app.server.listen(0, r));
+    const base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
+    const post = (p: string, body: unknown, token?: string) => fetch(base + p, { method: 'POST', body: JSON.stringify(body), headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) } });
+    try {
+      const n = `gone_${Math.random().toString(36).slice(2, 7)}`;
+      const token = (await (await post('/api/auth/register', { username: n, password: 'password123' })).json()).token;
+      assert.equal((await post('/api/auth/delete', { password: 'wrongpass1' }, token)).status, 401);
+      assert.equal((await post('/api/auth/delete', { password: 'password123' })).status, 401);
+      assert.equal((await post('/api/auth/delete', { password: 'password123' }, token)).status, 200);
+      assert.equal((await fetch(base + '/api/me', { headers: { authorization: `Bearer ${token}` } })).status, 401);
+      assert.equal((await post('/api/auth/login', { username: n, password: 'password123' })).status, 401);
+      // The name is free again.
+      assert.equal((await post('/api/auth/register', { username: n, password: 'password123' })).status, 200);
+    } finally {
+      await app.close();
+    }
+  });
 }
 
 await suite('memory', async () => new MemoryStore());

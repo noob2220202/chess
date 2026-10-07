@@ -11,7 +11,6 @@ import { Link, navigate } from '../lib/router.tsx';
 import { getProgress, load, save } from '../lib/storage.ts';
 import { LESSONS } from '../tutorial/lessons.ts';
 
-interface Health { rooms: number; queue: number; online: number }
 interface Row { rank: number; username: string; rating: number }
 
 function dayIndex() {
@@ -52,7 +51,6 @@ function InstallRow() {
 
 export default function Home() {
   const o = useOnline();
-  const [health, setHealth] = useState<Health | null>(null);
   const [top, setTop] = useState<Row[] | null>(null);
   const prog = getProgress();
   const nextLesson = LESSONS.find((l) => !prog.lessons.includes(l.id));
@@ -61,7 +59,6 @@ export default function Home() {
   const spotlight = Array.from({ length: 8 }, (_, i) => CARDS[CARD_ORDER[(n * 31 + i * 7) % CARD_ORDER.length]!]!);
 
   useEffect(() => {
-    api<Health>('/api/health').then(setHealth).catch(() => setHealth(null));
     api<{ rows: Row[] }>('/api/leaderboard').then((r) => setTop(r.rows.slice(0, 5))).catch(() => setTop([]));
   }, []);
 
@@ -80,16 +77,15 @@ export default function Home() {
           <h1>{o.user ? `${o.user.username}님, 환영합니다` : `${APP_NAME}에 오신 걸 환영합니다`}</h1>
           <p>{o.user && o.rating ? `레이팅 ${o.rating.rating}${o.rating.provisional ? ` · 배치 ${o.rating.games}/10판` : ''}` : '체스에 증강 카드를 더한 전략 게임입니다.'}</p>
         </div>
-        {health && <span className="status-pill"><i />{health.online}명 접속 중</span>}
       </div>
 
       <div className="home">
         <div>
           {fresh && (
             <div className="list" style={{ marginBottom: 14 }}>
-              <button className="list-row" onClick={() => navigate('/learn/basics')}>
+              <button className="list-row" onClick={() => navigate('/learn')}>
                 <span className="ic teal"><GraduationCap /></span>
-                <span className="grow"><b>처음이라면 5분 튜토리얼부터</b><small>보드 위에서 직접 두며 규칙을 익힙니다</small></span>
+                <span className="grow"><b>처음이라면 튜토리얼부터</b><small>짧은 레슨 {LESSONS.length}개로 규칙과 카드를 익힙니다</small></span>
                 <ChevronRight className="chev" />
               </button>
             </div>
@@ -99,7 +95,7 @@ export default function Home() {
             <img className="art" src="/pieces/wQ.svg" alt="" />
             <span className="kicker">같은 카드로 실력을 겨루는</span>
             <span className="title">레이팅전 시작</span>
-            <span className="meta"><span>10분 + 5초</span><span>미러 드래프트</span>{health && <span>대기 {health.queue}명</span>}</span>
+            <span className="meta"><span>10분 + 5초</span><span>미러 드래프트</span></span>
             <span className="go"><Swords /></span>
           </button>
           <div className="sub-play">

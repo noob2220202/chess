@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { seasonReset } from './glicko2.ts';
+import { deletedName } from './store.ts';
 import type { CardStatDelta, FriendLists, FriendRequestResult, GameRecord, LeaderRow, Rating, RatingUpdate, Store, User } from './store.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -178,6 +179,17 @@ export class PgStore implements Store {
       ? await this.pool.query("UPDATE friendships SET status = 'accepted' WHERE requester_id = $1 AND addressee_id = $2 AND status = 'pending'", [requesterId, userId])
       : await this.pool.query("DELETE FROM friendships WHERE requester_id = $1 AND addressee_id = $2 AND status = 'pending'", [requesterId, userId]);
     return (r.rowCount ?? 0) > 0;
+  }
+  async deleteUser(userId: number) {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM ratings WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM friendships WHERE requester_id = $1 OR addressee_id = $1', [userId]);
+      await client.query("UPDATE users SET username = $2, password_hash = '!' WHERE id = $1", [userId, deletedName(userId)]);
+      await client.query('COMMIT');
+    } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
   }
   async removeFriend(a: number, b: number) {
     await this.pool.query('DELETE FROM friendships WHERE (requester_id = $1 AND addressee_id = $2) OR (requester_id = $2 AND addressee_id = $1)', [a, b]);

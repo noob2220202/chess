@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, LogOut, Swords } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, LogOut, Swords, UserX } from 'lucide-react';
 import type { GameState, Move } from '@engine';
 import { CARDS, applyMove, cloneState, newGame, pickCard, playCard, rankedPool } from '@engine';
 import { Board } from '../game/Board.tsx';
@@ -8,6 +8,8 @@ import { REASON_TEXT } from '../game/GameScreen.tsx';
 import { api, type PublicRating } from '../lib/api.ts';
 import { useOnline } from '../lib/online.tsx';
 import { Link, navigate } from '../lib/router.tsx';
+import { useToast } from '../lib/toast.tsx';
+import { Sheet } from '../lib/ui.tsx';
 
 interface Row { rank: number; username: string; rating: number; rd: number; games: number; wins: number; losses: number; draws: number }
 
@@ -68,7 +70,6 @@ export function Profile({ name }: { name: string }) {
           <h1 style={{ fontSize: 26, fontWeight: 850 }} className="ellipsis">{d.user.username}</h1>
           <p className="muted" style={{ fontSize: 14 }}>{new Date(d.user.createdAt).toLocaleDateString('ko-KR')} 가입 · 시즌 {d.season}</p>
         </div>
-        {mine && <button className="icon-btn" title="로그아웃" onClick={async () => { await o.signOut(); navigate('/'); }}><LogOut /></button>}
       </div>
       <div className="stat-grid">
         <div className="stat"><div className="v">{r.rating}{r.provisional ? '?' : ''}</div><div className="k">{r.provisional ? `배치 ${r.games}/10판` : `레이팅 ±${r.rd}`}</div></div>
@@ -96,7 +97,57 @@ export function Profile({ name }: { name: string }) {
           })}
         </div>
       )}
+      {mine && <AccountSection />}
     </div>
+  );
+}
+
+function AccountSection() {
+  const o = useOnline();
+  const toast = useToast();
+  const [ask, setAsk] = useState(false);
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  async function del(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true); setErr(null);
+    try {
+      await api('/api/auth/delete', { body: { password: pw } });
+      await o.signOut();
+      toast('계정을 삭제했습니다.');
+      navigate('/');
+    } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
+  }
+  return (
+    <>
+      <div className="section-h"><h2>계정</h2></div>
+      <div className="list">
+        <button className="list-row" onClick={async () => { await o.signOut(); navigate('/'); }}>
+          <span className="ic slate"><LogOut /></span><span className="grow"><b>로그아웃</b></span>
+        </button>
+        <button className="list-row" onClick={() => { setAsk(true); setPw(''); setErr(null); }}>
+          <span className="ic rose"><UserX /></span><span className="grow"><b>계정 삭제</b><small>레이팅과 친구 목록이 지워지며 되돌릴 수 없습니다</small></span>
+        </button>
+      </div>
+      {ask && (
+        <Sheet onClose={() => setAsk(false)} label="계정 삭제">
+          <form className="stack" style={{ gap: 14 }} onSubmit={del}>
+            <h2>계정을 삭제하시겠습니까?</h2>
+            <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65 }}>비밀번호, 레이팅, 친구 목록을 바로 지웁니다. 지난 대국 기록은 상대방의 기보를 위해 남지만, 아이디는 알아볼 수 없게 바뀝니다. 삭제한 계정은 되돌릴 수 없습니다.</p>
+            <div className="field">
+              <label htmlFor="del-pw">비밀번호 확인</label>
+              <input id="del-pw" className="input" type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} required autoFocus />
+            </div>
+            {err && <p className="error-text" role="alert">{err}</p>}
+            <div className="row" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="btn" onClick={() => setAsk(false)}>취소</button>
+              <button className="btn danger" disabled={busy || pw.length === 0}>{busy ? '삭제 중…' : '계정 삭제'}</button>
+            </div>
+          </form>
+        </Sheet>
+      )}
+    </>
   );
 }
 
@@ -168,33 +219,6 @@ export function Replay({ id }: { id: string }) {
           ))}
         </aside>
       </div>
-    </div>
-  );
-}
-
-export function About() {
-  return (
-    <div className="page narrow">
-      <div className="head"><div className="eyebrow">정보</div><h1>규칙 요약 · 크레딧</h1></div>
-      <div className="section-h" style={{ marginTop: 0 }}><h2>핵심 규칙</h2></div>
-      <div className="list">
-        {[
-          '실제 체스처럼 체크메이트하면 이깁니다. 체크를 받으면 반드시 벗어나야 하고, 킹은 공격받는 칸으로 갈 수 없습니다.',
-          '내 0번째·10번째·20번째 수를 두기 직전에, 각각 오프닝·미들게임·엔드게임 카드 3장 중 1장을 고릅니다.',
-          '액티브 카드는 차례를 쓰지 않고, 한 차례에 한 장만 쓸 수 있습니다.',
-          '둘 수 있는 수가 없는데 체크가 아니면 스테일메이트로 무승부입니다. 같은 국면이 세 번 나오거나, 양쪽 합쳐 100수 동안 기물을 잡지도 폰을 움직이지도 않거나, 300수에 도달하면 무승부입니다.', '120수(양쪽 합산)가 지나면 연장전에 들어갑니다. 연장전에서 양쪽 합쳐 20수 동안 잡기·폰 이동·카드 사용이 없으면 남은 기물 점수(폰 1, 나이트 3, 비숍 3.2, 룩 5, 퀸 9, 특수 기물은 별도)가 높은 쪽이 이기고, 같으면 무승부입니다.',
-          '레이팅전은 두 사람이 같은 카드 중에서 고르는 미러 드래프트, 10분에 한 수당 5초 추가, Glicko-2 레이팅을 씁니다. 배치 10판을 마치면 랭킹에 오릅니다. 30초 안에 첫 수를 두지 않으면 대국이 취소됩니다.',
-        ].map((t, i) => <div key={i} className="kv" style={{ justifyContent: 'flex-start', gap: 12 }}><b className="muted" style={{ flex: 'none' }}>{i + 1}</b><span>{t}</span></div>)}
-      </div>
-      <div className="section-h"><h2>크레딧</h2></div>
-      <div className="list">
-        <div className="kv" style={{ display: 'block' }}>체스 기물 그림: Colin M.L. Burnett (Cburnett), <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA 3.0</a>. 특수 기물 배지는 이 그림을 조합해 만들었습니다.</div>
-        <div className="kv" style={{ display: 'block' }}>카드 일러스트 아이콘: <a href="https://game-icons.net" target="_blank" rel="noreferrer">game-icons.net</a> (Lorc, Delapouite 외), <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a>.</div>
-        <div className="kv" style={{ display: 'block' }}>UI 아이콘: <a href="https://lucide.dev" target="_blank" rel="noreferrer">Lucide</a> (ISC). 글꼴: <a href="https://github.com/orioncactus/pretendard" target="_blank" rel="noreferrer">Pretendard</a> (OFL).</div>
-        <div className="kv" style={{ display: 'block' }} >카드 이름과 효과, 카드 프레임, 앱 디자인은 이 프로젝트에서 직접 만들었습니다.</div>
-      </div>
-      <div className="section-h"><h2>개인정보</h2></div>
-      <p className="muted">계정에는 아이디와 암호화한 비밀번호만 저장합니다. 대국 기록과 카드 통계는 밸런스를 개선하는 데 씁니다. 튜토리얼 진행도와 설정은 이 기기에만 저장됩니다.</p>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api, type PublicRating, type User } from '../lib/api.ts';
 import { useOnline } from '../lib/online.tsx';
-import { navigate } from '../lib/router.tsx';
+import { Link, navigate } from '../lib/router.tsx';
 import { hasServer } from '../lib/server.ts';
 
 export function AuthForm({ onDone }: { onDone?: () => void }) {
@@ -52,7 +52,7 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
       </div>
       {err && <p className="error-text" role="alert">{err}</p>}
       <button className="btn primary lg block" disabled={busy}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
-      {mode === 'register' && <p className="muted center" style={{ fontSize: 13 }}>레이팅 1500에서 시작합니다. 이메일 같은 개인정보는 받지 않습니다.</p>}
+      {mode === 'register' && <p className="muted center" style={{ fontSize: 13, lineHeight: 1.6 }}>레이팅 1500에서 시작합니다. 이메일 같은 개인정보는 받지 않습니다.<br />가입하면 <Link to="/terms" style={{ textDecoration: 'underline' }}>이용약관</Link>과 <Link to="/privacy" style={{ textDecoration: 'underline' }}>개인정보처리방침</Link>에 동의하게 됩니다.</p>}
     </form>
   );
 }

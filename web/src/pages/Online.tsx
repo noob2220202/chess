@@ -38,7 +38,7 @@ function Lobby() {
       <div className="head">
         <div className="eyebrow">시즌 {o.season}</div>
         <h1>온라인 대전</h1>
-        <p className="status-pill">{offline ? <>서버 재연결 중…</> : <><i />서버에 연결되어 있습니다</>}</p>
+        {offline && <p className="status-pill">서버에 다시 연결하는 중…</p>}
       </div>
 
       {o.queue ? (
