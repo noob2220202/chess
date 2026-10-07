@@ -14,14 +14,38 @@ function ac(): AudioContext | null {
   }
 }
 
+/**
+ * Creating an AudioContext takes tens of milliseconds on phones. Do it on the first touch,
+ * outside any move, instead of in the middle of the first move or the final one.
+ */
+export function warmUpAudio(): void {
+  const once = () => {
+    window.removeEventListener('pointerdown', once, true);
+    window.removeEventListener('keydown', once, true);
+    setTimeout(() => { const a = ac(); if (a) noise(a, 0.07); }, 0);
+  };
+  window.addEventListener('pointerdown', once, true);
+  window.addEventListener('keydown', once, true);
+}
+
+const noiseCache = new Map<number, AudioBuffer>();
+/** Decaying white noise, generated once per length. */
+function noise(a: AudioContext, dur: number): AudioBuffer {
+  let buf = noiseCache.get(dur);
+  if (buf && buf.sampleRate === a.sampleRate) return buf;
+  const len = Math.floor(a.sampleRate * dur);
+  buf = a.createBuffer(1, len, a.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  noiseCache.set(dur, buf);
+  return buf;
+}
+
 /** Short filtered noise burst: a wooden "tock". */
 function knock(gain: number, freq: number, dur = 0.07) {
   const a = ac();
   if (!a) return;
-  const len = Math.floor(a.sampleRate * dur);
-  const buf = a.createBuffer(1, len, a.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  const buf = noise(a, dur);
   const src = a.createBufferSource();
   src.buffer = buf;
   const f = a.createBiquadFilter();
@@ -52,16 +76,20 @@ function tone(freqs: number[], dur: number, gain = 0.08, type: OscillatorType = 
   });
 }
 
+const later = (f: () => void) => () => { setTimeout(f, 0); };
+
+/** Each sound is played in its own task so it never delays drawing the board. */
 export const sound = {
-  move: () => knock(0.9, 1100),
-  capture: () => { knock(1.2, 700, 0.09); knock(0.5, 1800, 0.05); },
-  card: () => tone([660, 880, 1320], 0.35, 0.06, 'triangle', 0.05),
-  pick: () => tone([520, 780], 0.25, 0.07, 'triangle', 0.07),
-  notify: () => tone([880, 660], 0.22, 0.07, 'sine', 0.1),
-  win: () => tone([523, 659, 784, 1046], 0.5, 0.08, 'triangle', 0.09),
-  lose: () => tone([440, 370, 294], 0.5, 0.07, 'sine', 0.12),
-  success: () => tone([784, 988, 1318], 0.45, 0.07, 'triangle', 0.07),
-  error: () => tone([220, 196], 0.18, 0.06, 'square', 0.08),
+  move: later(() => knock(0.9, 1100)),
+  capture: later(() => { knock(1.2, 700, 0.09); knock(0.5, 1800, 0.05); }),
+  check: later(() => { knock(1, 700, 0.08); tone([988, 1318], 0.16, 0.06, 'square', 0.05); }),
+  card: later(() => tone([660, 880, 1320], 0.35, 0.06, 'triangle', 0.05)),
+  pick: later(() => tone([520, 780], 0.25, 0.07, 'triangle', 0.07)),
+  notify: later(() => tone([880, 660], 0.22, 0.07, 'sine', 0.1)),
+  win: later(() => tone([523, 659, 784, 1046], 0.5, 0.08, 'triangle', 0.09)),
+  lose: later(() => tone([440, 370, 294], 0.5, 0.07, 'sine', 0.12)),
+  success: later(() => tone([784, 988, 1318], 0.45, 0.07, 'triangle', 0.07)),
+  error: later(() => tone([220, 196], 0.18, 0.06, 'square', 0.08)),
 };
 
 /** Short vibration on supporting phones. */

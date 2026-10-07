@@ -1,7 +1,7 @@
 import type { Move, PieceType } from '../types.ts';
 import { file, forward, other, rank, relRank, sq } from '../types.ts';
 import { register } from '../registry.ts';
-import { DIAG, ORTHO, slides } from '../rules.ts';
+import { DIAG, ORTHO, pieceMoves, slides } from '../rules.ts';
 import {
   MINORS, NON_PAWN_KING, ROOKISH, S, addEffect, adjacent, at, destroy, empty, enemy, homeRank, moved, own, setStatus,
   summon, target, usedCard,
@@ -90,14 +90,25 @@ register(
   },
   {
     id: 'second-wind', name: '기사회생', kind: 'passive', category: 'END', stars: 4.5,
-    description: '게임에서 한 번, 내 킹이 잡히는 순간 공격한 기물이 대신 파괴되고 킹은 살아남습니다.',
+    description: '게임에서 한 번, 체크메이트를 당하는 순간 내 킹을 공격하던 상대 기물이 모두 파괴되고 게임이 계속됩니다.',
+    saveFromMate: (s, src) => {
+      const f = s.cards[src.owner].flags;
+      if (f['second-wind']) return false;
+      f['second-wind'] = 1;
+      const k = s.board.findIndex((p) => !!p && p.type === 'K' && p.color === src.owner);
+      for (let i = 0; i < 64; i++) {
+        const p = s.board[i];
+        if (p && p.color !== src.owner && pieceMoves(s, i).some((m) => m.to === k)) destroy(s, i);
+      }
+      return true;
+    },
     saveKing: (s, _a, src) => {
       const f = s.cards[src.owner].flags;
       if (f['second-wind']) return false;
       f['second-wind'] = 1;
       return true;
     },
-    demo: { board: '4k3/8/8/8/8/8/8/4R1K1', white: [], black: ['second-wind'], text: '상대가 기사회생을 가지고 있습니다. e1 룩으로 e8의 킹을 잡아 보세요.', done: '킹 대신 공격한 룩이 파괴되었습니다. 기사회생은 한 번만 발동합니다.', goal: (s, a) => a.kind === 'move' && at(s, S('e8'))?.type === 'K' && !at(s, S('e1')) },
+    demo: { board: '4k3/8/8/8/8/8/8/4R1K1', white: [], black: ['second-wind'], text: '상대가 기사회생을 가지고 있습니다. e1 룩으로 e8의 킹을 공격해 보세요.', done: '킹 대신 공격한 룩이 파괴되었습니다. 기사회생은 한 번만 발동합니다.', goal: (s, a) => a.kind === 'move' && at(s, S('e8'))?.type === 'K' && !at(s, S('e1')) },
   },
   {
     id: 'amazon', name: '아마존', kind: 'active', category: 'END', stars: 4.5,

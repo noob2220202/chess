@@ -87,7 +87,7 @@ register(
   {
     id: 'fortress', name: '요새', kind: 'active', category: 'END', stars: 3,
     description: '상대 차례 2번 동안 상대 기물은 내 킹 주변 8칸에 들어올 수 없습니다.',
-    detail: '킹을 직접 잡는 수는 막지 못합니다.',
+    detail: '체크는 막지 못합니다.',
     activate: (s, o) => addEffect(s, 'fortress', o, 4),
     allowMove: (s, m, mover, src) => mover === src.owner || !adjacent(kingSq(s, src.owner), m.to),
     demo: { board: '4k3/8/8/8/8/8/8/4K3', text: '“요새” 카드를 써서 킹 주변을 막으세요.', done: '두 차례 동안 상대는 킹에게 다가오지 못합니다.', goal: usedCard('fortress') },

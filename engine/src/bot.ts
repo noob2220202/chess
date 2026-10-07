@@ -2,7 +2,7 @@ import type { CardId, Color, GameState, Move, Square } from './types.ts';
 import { other } from './types.ts';
 import { PIECE_VALUE, cloneState, findKing } from './board.ts';
 import { CARDS } from './registry.ts';
-import { captureSquare, legalMoves } from './rules.ts';
+import { captureSquare, legalMoves, pseudoMoves } from './rules.ts';
 import { applyMove, cardReady, pickCard, playCard, targetOptions } from './game.ts';
 import type { Rng } from './rng.ts';
 import { makeRng } from './rng.ts';
@@ -49,7 +49,9 @@ function negamax(s: GameState, depth: number, alpha: number, beta: number, ctx: 
   const me = s.turn;
   if (s.winner || depth === 0 || ctx.nodes > ctx.limit) return evaluate(s, me);
   if (s.cards[me].offer) return evaluate(s, me); // a draft interrupts search; treat as leaf
-  const moves = orderMoves(s, legalMoves(s));
+  // Inside the search, moves that leave the own king attacked are refuted by the king capture below,
+  // which is equivalent to filtering them and much cheaper. Only the root uses fully legal moves.
+  const moves = orderMoves(s, pseudoMoves(s));
   // Immediate king capture.
   for (const m of moves) {
     const c = captureSquare(s, m);
@@ -59,7 +61,7 @@ function negamax(s: GameState, depth: number, alpha: number, beta: number, ctx: 
   for (const m of moves) {
     ctx.nodes++;
     const c = cloneState(s);
-    applyMove(c, m, true);
+    applyMove(c, m, true, true);
     // A card can give the same side another move; then the child score is already ours.
     const v = c.winner ? evaluate(c, me) : c.turn === me ? negamax(c, depth - 1, alpha, beta, ctx) : -negamax(c, depth - 1, -beta, -alpha, ctx);
     if (v > best) best = v;

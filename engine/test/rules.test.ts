@@ -48,9 +48,14 @@ test('capturing the king wins and ends the game', () => {
   assert.throws(() => applyMove(s, mv('e8', 'e7')));
 });
 
-test('there is no check rule: a king may walk into attack', () => {
+test('like real chess, a king may not walk into attack and a check must be answered', () => {
   const s = chess('4k3/8/8/8/8/8/3r4/4K3');
-  assert.ok(legalMoves(s).some((m) => m.from === P('e1') && m.to === P('e2')));
+  assert.ok(!legalMoves(s).some((m) => m.from === P('e1') && m.to === P('e2')), 'e2 is attacked by the rook');
+  assert.ok(legalMoves(s).some((m) => m.from === P('e1') && m.to === P('d2')), 'capturing the rook is fine');
+  const c = chess('4k3/8/8/8/8/8/P7/r3K3');
+  assert.ok(legalMoves(c).every((m) => m.from === P('e1')), 'in check from a1: only king moves help');
+  assert.ok(!legalMoves(chess('4k3/8/8/8/8/8/8/R3K2r')).some((m) => m.castle), 'no castling out of check');
+  assert.ok(!legalMoves(chess('4k3/8/8/8/8/8/5r2/R3K2R')).some((m) => m.castle === 'K'), 'no castling through check');
 });
 
 test('castling both sides, en passant, promotion choices', () => {
@@ -73,13 +78,22 @@ test('castling both sides, en passant, promotion choices', () => {
   assert.equal(legalMoves(p).filter((m) => m.promotion).length, 4);
 });
 
-test('a side with no legal moves loses', () => {
-  // Black king on a8 boxed in by shielded white pieces it cannot capture.
-  const t = chess('kN6/NN6/8/8/8/8/8/K7');
-  for (const x of ['b8', 'a7', 'b7']) t.board[P(x)]!.status.shield = 99;
-  applyMove(t, mv('a1', 'b1'));
-  assert.equal(t.winner, 'w');
-  assert.equal(t.endReason, 'no-moves');
+test('checkmate wins and stalemate is a draw', () => {
+  const m = chess('6k1/5ppp/8/8/8/8/8/R5K1');
+  applyMove(m, mv('a1', 'a8'));
+  assert.equal(m.winner, 'w');
+  assert.equal(m.endReason, 'checkmate');
+  const st = chess('7k/8/8/8/8/8/8/1Q4K1');
+  applyMove(st, mv('b1', 'g6'));
+  assert.equal(st.winner, 'draw');
+  assert.equal(st.endReason, 'stalemate');
+});
+
+test('a card that escapes mate keeps the game going', () => {
+  const m = chess('6k1/5ppp/8/8/8/8/8/R5K1');
+  m.cards.b.hand.push('king-armor');
+  applyMove(m, mv('a1', 'a8'));
+  assert.equal(m.winner, null, 'black can still play king-armor');
 });
 
 test('threefold repetition and quiet-move limit draw', () => {

@@ -163,8 +163,8 @@ export function pieceMoves(s: GameState, from: Square): Move[] {
   return out;
 }
 
-/** Every move available to `color`. There is no check rule: capturing the king wins. */
-export function legalMoves(s: GameState, color: Color = s.turn): Move[] {
+/** Every move `color` could make if leaving its own king attacked were allowed (card filters applied). */
+export function pseudoMoves(s: GameState, color: Color = s.turn): Move[] {
   let out: Move[] = [];
   for (let i = 0; i < 64; i++) {
     const p = s.board[i];
@@ -172,6 +172,69 @@ export function legalMoves(s: GameState, color: Color = s.turn): Move[] {
   }
   for (const { def, src } of sources(s)) if (def.filterMoves) out = def.filterMoves(s, color, out, src);
   return out;
+}
+
+function kingSquare(s: GameState, color: Color): Square {
+  for (let i = 0; i < 64; i++) {
+    const p = s.board[i];
+    if (p && p.type === 'K' && p.color === color) return i;
+  }
+  return -1;
+}
+
+/** Can the opponent of `color` capture the piece on `target` right now? */
+export function isAttacked(s: GameState, target: Square, color: Color): boolean {
+  for (let i = 0; i < 64; i++) {
+    const p = s.board[i];
+    if (!p || p.color === color) continue;
+    for (const m of pieceMoves(s, i)) if (captureSquare(s, m) === target) return true;
+  }
+  return false;
+}
+
+/** Is `color`'s king in check (capturable by the opponent)? */
+export function inCheck(s: GameState, color: Color = s.turn): boolean {
+  const k = kingSquare(s, color);
+  return k >= 0 && isAttacked(s, k, color);
+}
+
+/** Board after a move, for safety tests only (card hooks are not run). */
+function simulate(s: GameState, m: Move): GameState {
+  const board = s.board.slice();
+  const piece = board[m.from]!;
+  const cap = captureSquare(s, m);
+  if (cap >= 0) board[cap] = null;
+  board[m.to] = m.promotion ? { ...piece, type: m.promotion } : piece;
+  board[m.from] = null;
+  if (m.castle) {
+    const r = rank(m.to);
+    const rf = m.castle === 'K' ? sq(7, r) : sq(0, r), rt = m.castle === 'K' ? sq(5, r) : sq(3, r);
+    board[rt] = board[rf]!;
+    board[rf] = null;
+  }
+  return { ...s, board, epSquare: null };
+}
+
+/** Does the move keep the mover's own king safe? Castling may not start in or pass through check. */
+export function isSafe(s: GameState, m: Move, color: Color): boolean {
+  const piece = s.board[m.from];
+  if (!piece) return false;
+  if (m.castle) {
+    if (inCheck(s, color)) return false;
+    const mid = (m.from + m.to) / 2;
+    if (isAttacked(simulate(s, { from: m.from, to: mid }), mid, color)) return false;
+  }
+  return !inCheck(simulate(s, m), color);
+}
+
+/** Every legal move for `color`: like real chess, a move may not leave your own king in check. */
+export function legalMoves(s: GameState, color: Color = s.turn): Move[] {
+  return pseudoMoves(s, color).filter((m) => isSafe(s, m, color));
+}
+
+/** Cheaper than legalMoves(...).length > 0. */
+export function hasLegalMove(s: GameState, color: Color = s.turn): boolean {
+  return pseudoMoves(s, color).some((m) => isSafe(s, m, color));
 }
 
 export const sameMove = (a: Move, b: Move): boolean => moveKey(a) === moveKey(b);

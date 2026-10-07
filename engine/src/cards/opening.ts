@@ -57,7 +57,7 @@ register(
     id: 'royal-guard', name: '근위대', kind: 'passive', category: 'OPENING', stars: 2.5,
     description: '내 킹은 폰에게 잡히지 않습니다.',
     protects: (s, a, t) => at(s, t)?.type === 'K' && at(s, a)?.type === 'P',
-    demo: { board: '4k3/8/8/2p5/8/4K3/8/8', text: 'c5의 폰이 d4를 노리고 있습니다. 그래도 킹을 d4로 옮겨 보세요.', done: '근위대가 있으면 폰은 킹을 잡을 수 없습니다.', goal: moved('e3', 'd4') },
+    demo: { board: '4k3/8/8/2p5/8/4K3/8/8', text: 'c5의 폰이 d4를 노리고 있습니다. 그래도 킹을 d4로 옮겨 보세요.', done: '근위대가 있으면 폰은 킹을 공격할 수 없습니다.', goal: moved('e3', 'd4') },
   },
   {
     id: 'archbishop', name: '대주교 서임', kind: 'passive', category: 'OPENING', stars: 3.5,
@@ -216,7 +216,7 @@ register(
   {
     id: 'fortified-center', name: '중앙 요새', kind: 'passive', category: 'OPENING', stars: 2.5,
     description: '상대 기물은 내 요새 칸(백은 d3·e3, 흑은 d6·e6)에 들어올 수 없습니다.',
-    detail: '그 칸에 서 있는 킹을 잡는 수는 막지 못합니다.',
+    detail: '그 칸에 서 있는 킹에게 체크를 거는 것은 막지 못합니다.',
     allowMove: (s, m, mover, src) => {
       if (mover === src.owner) return true;
       if (relRank(m.to, src.owner) !== 2 || (file(m.to) !== 3 && file(m.to) !== 4)) return true;

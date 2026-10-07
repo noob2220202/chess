@@ -4,6 +4,7 @@ import App from './App.tsx';
 import { setupNative } from './lib/native.ts';
 import { OnlineProvider } from './lib/online.tsx';
 import { isNative } from './lib/server.ts';
+import { warmUpAudio } from './lib/sound.ts';
 import { RouterProvider } from './lib/router.tsx';
 import { SettingsProvider } from './lib/settings.tsx';
 import { ToastProvider } from './lib/toast.tsx';
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')!).render(
 );
 
 setupNative().catch(() => {});
+warmUpAudio();
 
 // The app shell already ships every file locally; a service worker only matters for the website.
 if ('serviceWorker' in navigator && import.meta.env.PROD && !isNative()) {

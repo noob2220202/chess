@@ -78,7 +78,7 @@ export interface GameState {
 }
 
 export type EndReason =
-  | 'king-captured' | 'no-moves' | 'card-win' | 'ply-limit' | 'quiet-limit' | 'repetition'
+  | 'king-captured' | 'checkmate' | 'stalemate' | 'no-moves' | 'card-win' | 'ply-limit' | 'quiet-limit' | 'repetition'
   | 'resign' | 'timeout' | 'abandon' | 'agreement';
 
 export const PERMANENT = 1e9;

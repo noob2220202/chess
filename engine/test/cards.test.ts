@@ -118,20 +118,16 @@ test('mine triggers on a non-king enemy piece', () => {
   assert.equal(t.effects.length, 0);
 });
 
-test('second wind saves the king exactly once', () => {
-  const s = fromPlacement('4k3/8/8/8/8/8/8/R3K2R');
+test('second wind turns the first checkmate around, once', () => {
+  const s = fromPlacement('6k1/5ppp/8/8/8/8/8/R3R1K1');
   s.cards.b.hand.push('second-wind');
-  applyMove(s, mv('a1', 'a8')); // not a capture
-  applyMove(s, mv('e8', 'd8'));
-  applyMove(s, mv('a8', 'd8')); // captures king -> saved, rook destroyed
-  assert.equal(s.winner, null);
-  assert.equal(s.board[P('d8')]?.type, 'K');
-  assert.equal(s.board[P('a8')], null);
-  applyMove(s, mv('d8', 'e8'));
-  applyMove(s, mv('h1', 'h8'));
-  applyMove(s, mv('e8', 'd8'));
-  applyMove(s, mv('h8', 'd8'));
+  applyMove(s, mv('a1', 'a8'));
+  assert.equal(s.winner, null, 'mate prevented');
+  assert.equal(s.board[P('a8')], null, 'the checking rook was destroyed');
+  applyMove(s, mv('g8', 'h8'));
+  applyMove(s, mv('e1', 'e8'));
   assert.equal(s.winner, 'w');
+  assert.equal(s.endReason, 'checkmate');
 });
 
 test('summit wins only if the king survives a full enemy turn in the centre', () => {

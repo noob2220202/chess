@@ -1,5 +1,5 @@
 import type { CardId, DemoAction, GameState } from '../../../engine/src/index.ts';
-import { attacks, findKing, parseSquare } from '../../../engine/src/index.ts';
+import { attacks, findKing, hasLegalMove, inCheck, parseSquare } from '../../../engine/src/index.ts';
 
 export interface LessonStep {
   title: string;
@@ -20,27 +20,28 @@ const moved = (from: string, to: string) => (_s: GameState, a: DemoAction) => a.
 
 export const LESSONS: Lesson[] = [
   {
-    id: 'basics', title: '킹을 잡으면 승리', summary: '체크가 없는 체스의 승리 조건',
+    id: 'basics', title: '체크메이트로 승리', summary: '실제 체스와 같은 승리 조건',
     steps: [
       {
-        title: '목표는 킹을 잡는 것', board: '4k3/8/8/8/4R3/8/8/4K3',
-        text: '증강전에는 체크메이트가 없습니다. 상대 킹을 직접 잡으면 바로 이깁니다. e4의 룩으로 e8의 킹을 잡으세요.',
-        done: '승리! 킹을 잡는 순간 게임이 끝납니다.', goal: (_s, a) => a.kind === 'move' && a.captured === 'K',
+        title: '목표는 체크메이트', board: '6k1/5ppp/8/8/8/8/8/R5K1',
+        text: '실제 체스처럼, 상대 킹이 공격받고(체크) 피할 방법이 없으면 체크메이트로 이깁니다. a1 룩을 a8로 보내 체크메이트하세요.',
+        done: '체크메이트! 킹이 자기 폰에 막혀 도망칠 곳이 없습니다.',
+        goal: (s, a) => a.kind === 'move' && inCheck(s, 'b') && !hasLegalMove(s, 'b'),
       },
       {
-        title: '체크 경고가 없습니다', board: '4k3/8/8/8/8/8/3q4/4K3',
-        text: '상대 퀸이 킹 바로 옆까지 왔습니다. 증강전은 "체크" 경고를 띄우지 않으니, 위험은 직접 살펴야 합니다. 킹으로 d2의 퀸을 잡으세요.',
-        done: '좋습니다. 킹이 잡히는 칸으로도 움직일 수 있으니, 수를 두기 전에 상대의 공격을 꼭 확인하세요.', goal: moved('e1', 'd2'),
+        title: '체크는 반드시 피해야 합니다', board: '4k3/8/8/8/8/8/3q4/4K3',
+        text: '상대 퀸이 킹을 공격하고 있습니다(체크). 체크를 받으면 다른 수는 둘 수 없고, 반드시 벗어나야 합니다. 킹으로 d2의 퀸을 잡으세요.',
+        done: '좋습니다. 체크를 받으면 킹이 빨갛게 표시됩니다. 피하거나, 막거나, 공격한 기물을 잡으세요.', goal: moved('e1', 'd2'),
       },
       {
-        title: '상대 공격 범위 보기', board: '4k3/8/8/8/1b6/8/8/4K3',
-        text: '상대 기물을 누르면, 그 기물이 갈 수 있는 칸이 빨간 점선으로 보입니다. b4 비숍을 눌러 확인한 뒤, 킹을 공격받지 않는 칸으로 옮기세요.',
+        title: '킹은 공격받는 칸으로 갈 수 없습니다', board: '4k3/8/8/8/1b6/8/8/4K3',
+        text: '상대 기물을 누르면 그 기물이 갈 수 있는 칸이 빨간 점선으로 보입니다. b4 비숍이 노리는 d2로는 킹이 갈 수 없습니다. 안전한 칸으로 킹을 옮기세요.',
         done: '안전합니다! 상대 기물을 눌러 공격 범위를 확인하는 습관을 들이세요.',
         goal: (s, a) => a.kind === 'move' && a.piece === 'K' && !attacks(s, 'b').has(findKing(s, 'w')),
       },
       {
-        title: '무승부와 패배',
-        text: '같은 국면이 세 번 나오거나, 양쪽 합쳐 100수 동안 기물을 잡지도 폰을 움직이지도 않거나, 300수에 도달하면 무승부입니다. 둘 수 있는 수가 하나도 없으면 그쪽이 집니다.',
+        title: '무승부',
+        text: '둘 수 있는 수가 없는데 체크가 아니면 스테일메이트로 무승부입니다. 같은 국면이 세 번 나오거나, 양쪽 합쳐 100수 동안 기물을 잡지도 폰을 움직이지도 않거나, 300수에 도달해도 무승부입니다. 체크메이트를 당하더라도, 쓸 수 있는 카드로 벗어날 수 있다면 게임은 계속됩니다.',
       },
     ],
   },

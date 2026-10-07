@@ -3,7 +3,7 @@ import { file, other, rank, sq } from './types.ts';
 import { START_PLACEMENT, cloneState, findKing, fromPlacement, positionKey } from './board.ts';
 import type { CardCategory, DemoAction } from './registry.ts';
 import { CARDS, CARD_ORDER, draftWeight, sources } from './registry.ts';
-import { captureSquare, legalMoves, sameMove } from './rules.ts';
+import { captureSquare, hasLegalMove, inCheck, legalMoves, sameMove } from './rules.ts';
 import type { Rng } from './rng.ts';
 import { makeRng, weightedPick } from './rng.ts';
 import './cards/index.ts';
@@ -72,7 +72,7 @@ export function endGame(s: GameState, winner: Color | 'draw', reason: EndReason)
 }
 
 /** Begin the turn of `s.turn`: limits, effect expiry, turn-start hooks, draft offer, stalemate. */
-function startTurn(s: GameState): void {
+function startTurn(s: GameState, searching = false): void {
   if (s.winner) return;
   if (!s.sandbox) {
     const key = positionKey(s);
@@ -90,11 +90,48 @@ function startTurn(s: GameState): void {
     p.offer = [...s.draftPlan[s.turn][p.draftsTaken]!];
     return;
   }
-  checkNoMoves(s);
+  // Inside the bot search a mated side simply loses its king on the next ply, so skip the full test.
+  if (!searching) checkNoMoves(s);
 }
 
+/** Checkmate / stalemate, like real chess. A card that opens up a legal move keeps the game going. */
 function checkNoMoves(s: GameState): void {
-  if (!s.winner && !s.sandbox && legalMoves(s).length === 0) finish(s, other(s.turn), 'no-moves');
+  if (s.winner || s.sandbox || hasLegalMove(s) || cardEscape(s)) return;
+  if (inCheck(s)) {
+    const me = s.turn;
+    const saved = sources(s).some(({ def, src }) => src.owner === me && def.saveFromMate?.(s, src));
+    if (saved && (hasLegalMove(s) || cardEscape(s))) return;
+    finish(s, other(me), 'checkmate');
+  }
+  else finish(s, 'draw', 'stalemate');
+}
+
+/** Could the side to move play an active card after which it has a legal move? */
+function cardEscape(s: GameState): boolean {
+  const me = s.turn;
+  for (const id of s.cards[me].hand) {
+    if (!cardReady(s, me, id)) continue;
+    const tries = selections(s, me, id, [], 80);
+    for (const sel of tries) {
+      const c = cloneState(s);
+      CARDS[id]!.activate!(c, me, sel);
+      if (findKing(c, other(me)) < 0 || hasLegalMove(c, me)) return true;
+    }
+  }
+  return false;
+}
+
+function selections(s: GameState, color: Color, id: CardId, picked: Square[], cap: number): Square[][] {
+  const n = CARDS[id]!.targets?.length ?? 0;
+  if (picked.length === n) return [picked];
+  const out: Square[][] = [];
+  for (const x of targetOptions(s, color, id, picked)) {
+    for (const sel of selections(s, color, id, [...picked, x], cap - out.length)) {
+      out.push(sel);
+      if (out.length >= cap) return out;
+    }
+  }
+  return out;
 }
 
 export function pickCard(s: GameState, color: Color, id: CardId): void {
@@ -163,8 +200,11 @@ export function isLegal(s: GameState, m: Move): boolean {
   return legalMoves(s).some((x) => sameMove(x, m));
 }
 
-/** Apply a move. `trusted` skips the legality check (search code that generated the move itself). */
-export function applyMove(s: GameState, m: Move, trusted = false): GameState {
+/**
+ * Apply a move. `trusted` skips the legality check (the caller generated or validated the move).
+ * `search` is for the bot's look-ahead only: it also skips the checkmate/stalemate test.
+ */
+export function applyMove(s: GameState, m: Move, trusted = false, search = false): GameState {
   if (s.winner) throw new Error('game is over');
   const mover = s.turn;
   if (s.cards[mover].offer) throw new Error('draft pending');
@@ -178,7 +218,7 @@ export function applyMove(s: GameState, m: Move, trusted = false): GameState {
     if (saved) {
       s.lost[mover].push(piece.type);
       s.board[m.from] = null;
-      return endTurn(s, mover, true);
+      return endTurn(s, mover, true, search);
     }
   }
 
@@ -208,16 +248,16 @@ export function applyMove(s: GameState, m: Move, trusted = false): GameState {
     return s;
   }
   for (const { def, src } of sources(s)) def.afterMove?.(s, { move: m, mover, piece, captured }, src);
-  return endTurn(s, mover, !!captured || piece.type === 'P');
+  return endTurn(s, mover, !!captured || piece.type === 'P', search);
 }
 
-function endTurn(s: GameState, mover: Color, irreversible: boolean): GameState {
+function endTurn(s: GameState, mover: Color, irreversible: boolean, searching = false): GameState {
   s.quiet = irreversible ? 0 : s.quiet + 1;
   const again = !s.sandbox && sources(s).some(({ def, src }) => def.keepTurn?.(s, mover, src));
   s.cards[mover].moves++;
   s.ply++;
   if (!s.sandbox && !again) s.turn = other(mover);
-  startTurn(s);
+  startTurn(s, searching);
   return s;
 }
 

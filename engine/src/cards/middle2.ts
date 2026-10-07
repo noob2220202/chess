@@ -188,7 +188,7 @@ register(
   {
     id: 'iron-curtain', name: '철의 장막', kind: 'active', category: 'MIDDLE', stars: 2.5,
     description: '상대 차례 2번 동안 상대 기물은 내 진영(백 기준 1~4랭크)으로 들어올 수 없습니다.',
-    detail: '이미 내 진영에 있는 상대 기물은 계속 움직일 수 있고, 킹을 잡는 수는 막지 못합니다.',
+    detail: '이미 내 진영에 있는 상대 기물은 계속 움직일 수 있고, 체크는 막지 못합니다.',
     activate: (s, o) => addEffect(s, 'iron-curtain', o, 4),
     allowMove: (s, m, mover, src) =>
       mover === src.owner || relRank(m.to, src.owner) > 3 || relRank(m.from, src.owner) <= 3 || at(s, m.to)?.type === 'K',

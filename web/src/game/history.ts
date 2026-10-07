@@ -1,5 +1,5 @@
 import type { CardId, Color, GameState, Move, Square } from '@engine';
-import { captureSquare, cloneState, notate, type Notation } from '@engine';
+import { captureSquare, cloneState, inCheck, notate, type Notation } from '@engine';
 
 export interface HistEntry {
   kind: 'start' | 'move' | 'card' | 'pick';
@@ -10,6 +10,13 @@ export interface HistEntry {
   note?: Notation;
   card?: CardId;
   captured?: boolean;
+  /** The move gave check. */
+  check?: boolean;
+}
+
+function withCheck(n: Notation, after: GameState): Notation {
+  if (after.endReason === 'checkmate') return { ...n, text: n.text + '#' };
+  return !after.winner && inCheck(after) ? { ...n, text: n.text + '+' } : n;
 }
 
 export const startEntry = (s: GameState): HistEntry => ({ kind: 'start', color: null, state: s, last: null });
@@ -18,7 +25,7 @@ export const startEntry = (s: GameState): HistEntry => ({ kind: 'start', color: 
 export function moveEntry(before: GameState, m: Move, after: GameState): HistEntry {
   return {
     kind: 'move', color: before.turn, state: after, last: { from: m.from, to: m.to },
-    note: notate(before, m), captured: captureSquare(before, m) >= 0,
+    note: withCheck(notate(before, m), after), captured: captureSquare(before, m) >= 0, check: !after.winner && inCheck(after),
   };
 }
 export function cardEntry(color: Color, id: CardId, after: GameState, last: HistEntry['last']): HistEntry {

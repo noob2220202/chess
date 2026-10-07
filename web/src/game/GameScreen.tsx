@@ -197,6 +197,15 @@ export function GameScreen(p: GameScreenProps) {
   useEffect(() => setSoundEnabled(settings.sound), [settings.sound]);
   useEffect(() => { setTarget(null); setConfirm(null); setView(null); setSheet((s) => (s?.kind === 'card' ? null : s)); }, [liveIdx]);
 
+  // Let the final move land (and the mated king light up) before the result sheet covers the board.
+  const hasOverlay = !!p.overlay;
+  const [overlayReady, setOverlayReady] = useState(hasOverlay);
+  useEffect(() => {
+    if (!hasOverlay) { setOverlayReady(false); return; }
+    const t = setTimeout(() => setOverlayReady(true), history[history.length - 1]?.kind === 'move' ? 650 : 0);
+    return () => clearTimeout(t);
+  }, [hasOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const prevLen = useRef(history.length);
   useEffect(() => {
     if (history.length > prevLen.current) {
@@ -204,7 +213,7 @@ export function GameScreen(p: GameScreenProps) {
       if (e.state.winner) {
         const me = p.self ?? null;
         if (me && e.state.winner === me) { sound.win(); haptic('win'); } else if (me && e.state.winner !== 'draw') sound.lose(); else sound.notify();
-      } else if (e.kind === 'move') { (e.captured ? sound.capture : sound.move)(); haptic(e.captured ? 'capture' : 'move'); }
+      } else if (e.kind === 'move') { (e.check ? sound.check : e.captured ? sound.capture : sound.move)(); haptic(e.captured || e.check ? 'capture' : 'move'); }
       else if (e.kind === 'card') sound.card();
       else if (e.kind === 'pick') sound.pick();
     }
@@ -340,7 +349,7 @@ export function GameScreen(p: GameScreenProps) {
           </div>
         </Sheet>
       )}
-      {p.overlay}
+      {overlayReady && p.overlay}
     </>
   );
 
@@ -424,7 +433,7 @@ export function GameScreen(p: GameScreenProps) {
 }
 
 export const REASON_TEXT: Record<string, string> = {
-  'king-captured': '킹을 잡았습니다', 'no-moves': '둘 수 있는 수가 없습니다', 'card-win': '카드 효과로 승리', 'ply-limit': '300수에 도달했습니다',
+  'king-captured': '킹을 잡았습니다', checkmate: '체크메이트', stalemate: '스테일메이트 · 둘 수 있는 수가 없습니다', 'no-moves': '둘 수 있는 수가 없습니다', 'card-win': '카드 효과로 승리', 'ply-limit': '300수에 도달했습니다',
   'quiet-limit': '100수 동안 잡거나 폰을 움직이지 않았습니다', repetition: '같은 국면이 세 번 나왔습니다', resign: '기권', timeout: '시간 초과',
   agreement: '합의 무승부', abort: '대국 취소', abandon: '이탈', end: '종료',
 };

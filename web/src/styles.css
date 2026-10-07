@@ -780,3 +780,8 @@ img, svg { display: block; }
 .card-art .ca-letter { fill: #fff; font-size: 0.24px; font-weight: 800; text-anchor: middle; font-family: var(--font); }
 .tcg .t-art .emblem.corner { position: absolute; left: 3cqw; top: 3cqw; width: 15cqw; height: 15cqw; padding: 2.4cqw; border-radius: 50%; background: linear-gradient(160deg, var(--c1), var(--c2)); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45), 0 1cqw 2cqw rgba(0, 0, 0, 0.35); filter: none; z-index: 1; }
 .tcg .t-art.has-board::before { opacity: 0.08; }
+
+/* ------------------------------------------------------------------ check */
+.sq.check::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 40, 30, 0.95) 0%, rgba(230, 30, 20, 0.6) 32%, rgba(200, 0, 0, 0) 72%); }
+.sq .mark.sand::before { content: ''; position: absolute; inset: 7%; border-radius: 6px; border: 3px dashed #b88a3c; background: radial-gradient(circle, rgba(184, 138, 60, 0.45), rgba(120, 84, 30, 0.25)); }

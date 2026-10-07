@@ -41,15 +41,14 @@ test('quicksand freezes the first enemy piece that steps on it', () => {
 });
 
 test('counterattack destroys a pawn that captures, king-armor shields the king', () => {
-  const s = fromPlacement('4k3/8/8/3n4/4P3/8/8/r3K3');
+  const s = fromPlacement('4k3/8/8/3n4/4P3/8/7r/4K3');
   s.cards.b.hand.push('counterattack');
   s.cards.w.hand.push('king-armor');
   applyMove(s, mv('e4', 'd5'));
   assert.equal(s.board[P('d5')], null);
   applyMove(s, mv('e8', 'f8'));
   playCard(s, 'w', 'king-armor', []);
-  applyMove(s, mv('e1', 'd1'));
-  assert.ok(!legalMoves(s).some((m) => m.to === P('d1')), 'shielded king cannot be captured');
+  assert.ok(legalMoves(s).some((m) => m.from === P('e1') && m.to === P('e2')), 'a shielded king may step onto an attacked square');
 });
 
 test('bots finish games with the full card pool', () => {

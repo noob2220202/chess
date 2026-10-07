@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Color, GameState, Move, PieceType, Square } from '@engine';
-import { PIECE_NAME, file, legalMoves, rank, squareName } from '@engine';
+import { PIECE_NAME, file, findKing, inCheck, legalMoves, pseudoMoves, rank, squareName } from '@engine';
 import { useSettings } from '../lib/settings.tsx';
 import { PieceIcon, statusBadges } from './PieceIcon.tsx';
 
@@ -40,8 +40,14 @@ export function Board({ state, orientation, actor, lastMove, targeting, guide, o
   const preview = useMemo(() => {
     if (selected === null || !selPiece) return [] as Move[];
     if (actor && selPiece.color === actor && state.turn === actor) return myMoves.filter((m) => m.from === selected);
-    return legalMoves(state, selPiece.color).filter((m) => m.from === selected);
+    // The opponent's range: pseudo-legal is what matters for "what does this piece attack".
+    return pseudoMoves(state, selPiece.color).filter((m) => m.from === selected);
   }, [selected, selPiece, myMoves, state, actor]);
+  // King in check (or the mated king once the game is over).
+  const checkSq = useMemo(() => {
+    const c = state.winner ? (state.endReason === 'checkmate' ? (state.winner === 'w' ? 'b' : 'w') : null) : state.turn;
+    return c && (state.endReason === 'checkmate' || inCheck(state, c)) ? findKing(state, c) : -1;
+  }, [state]);
   const previewIsEnemy = !!selPiece && (selPiece.color !== actor || state.turn !== actor);
 
   useEffect(() => { setSelected(null); setPromo(null); setArrows([]); setMarks([]); }, [state]);
@@ -145,6 +151,7 @@ export function Board({ state, orientation, actor, lastMove, targeting, guide, o
       if (summit && CENTER.includes(s)) cls.push('center-zone');
       if (guideSet.has(s)) cls.push('guide');
       if (marks.includes(s)) cls.push('marked');
+      if (checkSq === s) cls.push('check');
       const dest = dests.get(s);
       const eff = effects.filter((e) => e.square === s);
       squares.push(
@@ -153,6 +160,7 @@ export function Board({ state, orientation, actor, lastMove, targeting, guide, o
           {r === 7 && <span className="coord f">{'abcdefgh'[file(s)]}</span>}
           {eff.some((e) => e.card === 'mine') && <span className="mark mine" title="지뢰" />}
           {eff.some((e) => e.card === 'sanctuary') && <span className="mark sanct" title="성역" />}
+          {eff.some((e) => e.card === 'quicksand') && <span className="mark sand" title="늪" />}
           {dest !== undefined && <span className={`${dest ? 'ring' : 'dot'}${previewIsEnemy ? ' enemy' : ''}`} />}
         </div>,
       );
