@@ -3,6 +3,7 @@ import { APP_NAME, APP_NAME_EN } from './brand.ts';
 import { useOnline } from './lib/online.tsx';
 import { Link, match, usePath } from './lib/router.tsx';
 import { useSettings } from './lib/settings.tsx';
+import { AskHost } from './lib/ui.tsx';
 import { CardPage, CardStats, CardsIndex } from './pages/Cards.tsx';
 import Friends, { ChallengeLayer } from './pages/Friends.tsx';
 import Home from './pages/Home.tsx';
@@ -114,6 +115,7 @@ export default function App() {
       </div>
 
       <ChallengeLayer path={path} />
+      <AskHost />
       <nav className="tabbar" aria-label="하단 메뉴">
         <Link to="/" className={active('/') ? 'active' : ''}><House />홈</Link>
         <Link to="/learn" className={active('/learn') ? 'active' : ''}><GraduationCap />배우기</Link>

@@ -4,7 +4,7 @@ import { api } from '../lib/api.ts';
 import { useOnline, type Challenge } from '../lib/online.tsx';
 import { Link, navigate } from '../lib/router.tsx';
 import { useToast } from '../lib/toast.tsx';
-import { Sheet } from '../lib/ui.tsx';
+import { Sheet, ask } from '../lib/ui.tsx';
 import { AuthForm } from './Login.tsx';
 
 export interface Friend { id: number; username: string; rating: number; provisional: boolean; online: boolean; playing: boolean }
@@ -137,7 +137,7 @@ function FriendRow({ f, onChallenge, onRemove }: { f: Friend; onChallenge: () =>
           </div>
           <div className="list">
             <button className="list-row" onClick={() => { setMenu(false); navigate(`/u/${f.username}`); }}><span className="ic slate"><Trophy /></span><span className="grow"><b>프로필 보기</b></span></button>
-            <button className="list-row" onClick={() => { setMenu(false); if (confirm(`${f.username}님을 친구에서 삭제하시겠습니까?`)) onRemove(); }}><span className="ic rose"><UserMinus /></span><span className="grow"><b>친구 삭제</b></span></button>
+            <button className="list-row" onClick={async () => { setMenu(false); if (await ask({ title: `${f.username}님을 친구에서 삭제하시겠습니까?`, ok: '삭제', danger: true })) onRemove(); }}><span className="ic rose"><UserMinus /></span><span className="grow"><b>친구 삭제</b></span></button>
           </div>
         </Sheet>
       )}

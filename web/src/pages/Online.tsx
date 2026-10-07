@@ -6,6 +6,7 @@ import { cardEntry, moveEntry, pickEntry, startEntry, type HistEntry } from '../
 import { useOnline, type GameView } from '../lib/online.tsx';
 import { Link, navigate } from '../lib/router.tsx';
 import { useToast } from '../lib/toast.tsx';
+import { ask } from '../lib/ui.tsx';
 import { AuthForm } from './Login.tsx';
 
 export default function Online() {
@@ -146,11 +147,13 @@ function OnlineGame() {
     const outcome = w === 'draw' || w === 'aborted' ? 'draw' : w === you ? 'win' : 'lose';
     const title = w === 'aborted' ? '대국 취소' : w === 'draw' ? '무승부' : w === you ? '승리' : '패배';
     result = {
-      outcome, title, reason: REASON_TEXT[g.result.reason] ?? g.result.reason, delta: g.result.ratingDelta?.[you] ?? null,
+      outcome, title, void: w === 'aborted',
+      reason: w === 'aborted' ? '첫 수를 두기 전에 끝나 기록에 반영되지 않습니다' : REASON_TEXT[g.result.reason] ?? g.result.reason,
+      delta: w === 'aborted' ? null : g.result.ratingDelta?.[you] ?? null,
       actions: <>
         <button className="btn lg" onClick={o.dismissGame}>로비로</button>
-        {g.friendly && g.result.winner !== 'aborted'
-          ? <button className="btn lg primary" onClick={() => { o.challenge(g.userIds[opp], g.mode); o.dismissGame(); navigate('/friends'); }}>재대국 신청</button>
+        {g.friendly
+          ? <button className="btn lg primary" onClick={() => { o.challenge(g.userIds[opp], g.mode); o.dismissGame(); navigate('/friends'); }}>{w === 'aborted' ? '다시 신청' : '재대국 신청'}</button>
           : <button className="btn lg primary" onClick={() => { const m = g.mode; o.dismissGame(); o.joinQueue(m); }}>다시 매칭</button>}
       </>,
     };
@@ -158,7 +161,7 @@ function OnlineGame() {
 
   const menu: MenuItem[] = g.result ? [] : [
     { label: g.drawOffer === you ? '무승부 제안함' : '무승부 제안', icon: <Handshake />, disabled: g.drawOffer === you, onClick: () => send({ type: 'draw', action: 'offer' }) },
-    { label: g.state.ply < 2 ? '대국 취소' : '기권', icon: <Flag />, danger: true, onClick: () => { if (confirm(g.state.ply < 2 ? '대국을 취소하시겠습니까?' : '기권하시겠습니까?')) send({ type: 'resign' }); } },
+    { label: g.state.ply < 2 ? '대국 취소' : '기권', icon: <Flag />, danger: true, onClick: async () => { if (await ask(g.state.ply < 2 ? { title: '대국을 취소하시겠습니까?', body: '취소한 대국은 레이팅에 반영되지 않습니다.', ok: '대국 취소', danger: true } : { title: '기권하시겠습니까?', body: '기권하면 이 대국은 패배로 기록됩니다.', ok: '기권', danger: true })) send({ type: 'resign' }); } },
   ];
 
   return (

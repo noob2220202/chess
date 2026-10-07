@@ -43,7 +43,7 @@ if [ ! -f .env ]; then
   BAKED_PORT=$(grep -s '^VITE_SERVER_URL=' ../web/.env.production | sed -nE 's#.*:([0-9]+)/?$#\1#p' || true)
   PORT=${PUBLIC_PORT:-${BAKED_PORT:-5555}}
   PW=$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')
-  printf 'PUBLIC_PORT=%s\nPOSTGRES_PASSWORD=%s\nSEASON=1\n' "$PORT" "$PW" > .env
+  printf 'PUBLIC_PORT=%s\nPOSTGRES_PASSWORD=%s\nSEASON=1\n# Contact address shown on the privacy policy and in the footer\nCONTACT_EMAIL=\n' "$PORT" "$PW" > .env
   chmod 600 .env
   echo "▶ 설정을 deploy/.env에 저장했어요 (DB 비밀번호 포함, 지우지 마세요)."
 fi

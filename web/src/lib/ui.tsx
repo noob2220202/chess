@@ -37,3 +37,29 @@ export function useInGame(): void {
     return () => document.body.classList.remove('in-game');
   }, []);
 }
+
+interface Ask { title: string; body?: string; ok: string; danger?: boolean; resolve: (v: boolean) => void }
+let showAsk: ((a: Ask | null) => void) | null = null;
+
+/** In-app replacement for window.confirm. Resolves true when the action is confirmed. */
+export function ask(o: { title: string; body?: string; ok: string; danger?: boolean }): Promise<boolean> {
+  return new Promise((resolve) => (showAsk ? showAsk({ ...o, resolve }) : resolve(window.confirm(o.title))));
+}
+
+/** Mount once near the root. */
+export function AskHost() {
+  const [a, setA] = useState<Ask | null>(null);
+  useEffect(() => { showAsk = setA; return () => { showAsk = null; }; }, []);
+  if (!a) return null;
+  const done = (v: boolean) => { setA(null); a.resolve(v); };
+  return (
+    <Sheet onClose={() => done(false)} label={a.title}>
+      <h2>{a.title}</h2>
+      {a.body && <p className="muted" style={{ margin: '8px 0 0', lineHeight: 1.6 }}>{a.body}</p>}
+      <div className="row" style={{ justifyContent: 'flex-end', marginTop: 20 }}>
+        <button className="btn" onClick={() => done(false)}>취소</button>
+        <button className={`btn ${a.danger ? 'danger' : 'primary'}`} onClick={() => done(true)} autoFocus>{a.ok}</button>
+      </div>
+    </Sheet>
+  );
+}

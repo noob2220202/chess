@@ -116,11 +116,11 @@ export default function Home() {
               {o.incoming.length + o.friendRequests > 0 && <em className="nbadge static">{o.incoming.length + o.friendRequests}</em>}
               <ChevronRight className="chev" />
             </button>
-            <button className="list-row" onClick={() => navigate(nextLesson ? `/learn/${nextLesson.id}` : '/learn')}>
+            {!fresh && <button className="list-row" onClick={() => navigate(nextLesson ? `/learn/${nextLesson.id}` : '/learn')}>
               <span className="ic teal"><GraduationCap /></span>
               <span className="grow"><b>{nextLesson ? '튜토리얼 이어가기' : '튜토리얼 복습'}</b><small>{nextLesson ? `다음: ${nextLesson.title}` : '모든 레슨을 마쳤습니다'} · {prog.lessons.length}/{LESSONS.length}</small></span>
               <ChevronRight className="chev" />
-            </button>
+            </button>}
             <button className="list-row" onClick={() => navigate('/cards')}>
               <span className="ic amber"><Layers /></span>
               <span className="grow"><b>카드 연습</b><small>{CARD_ORDER.length}장 중 {prog.demos.length}장 연습 완료</small></span>

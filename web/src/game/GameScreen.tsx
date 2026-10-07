@@ -3,7 +3,7 @@ import {
   ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Ellipsis, Flag, Handshake, Layers, ListOrdered, Repeat, Settings as SettingsIcon, Timer, X,
 } from 'lucide-react';
 import type { CardId, Color, GameState, Move, PieceType, Square } from '@engine';
-import { CARDS, OVERTIME_PLY, OVERTIME_QUIET, PIECE_VALUE, cardReady, notate, targetOptions } from '@engine';
+import { CARDS, OVERTIME_PLY, OVERTIME_QUIET, PIECE_NAME, PIECE_VALUE, cardReady, notate, targetOptions } from '@engine';
 import { reviewMoves } from '../bot/client.ts';
 import { josa } from '../lib/korean.ts';
 import { useSettings } from '../lib/settings.tsx';
@@ -149,6 +149,9 @@ export function CardSheet({ id, onClose, onUse, useGuide }: { id: CardId; onClos
     </Sheet>
   );
 }
+
+/** "나이트 f3" style text for a move, readable without piece icons. */
+const noteText = (n: { piece: PieceType | null; text: string }) => (n.piece && n.piece !== 'P' ? `${PIECE_NAME[n.piece]} ${n.text}` : n.text);
 
 export interface ReviewMark { kind: 'blunder' | 'mistake' | 'miss'; best: Move; bestText: string }
 const MARK_LABEL: Record<ReviewMark['kind'], string> = { blunder: '큰 실수', mistake: '실수', miss: '이기는 수를 놓침' };
@@ -317,7 +320,7 @@ export function GameScreen(p: GameScreenProps) {
         const drop = r.bestScore - r.playedScore;
         const kind: ReviewMark['kind'] | null = r.bestScore > WIN && r.playedScore < WIN ? 'miss' : drop >= 3 ? 'blunder' : drop >= 1.5 ? 'mistake' : null;
         if (!kind) return;
-        m[i] = { kind, best: r.best, bestText: notate(history[i - 1]!.state, r.best).text };
+        m[i] = { kind, best: r.best, bestText: noteText(notate(history[i - 1]!.state, r.best)) };
         if (kind === 'mistake') mistakes++; else blunders++;
       });
       setMarks(m);
@@ -362,7 +365,7 @@ export function GameScreen(p: GameScreenProps) {
       ? (
         <div className={`notice review ${focusMark.kind}`}>
           <span className={`mk ${focusMark.kind}`}>{focusMark.kind === 'mistake' ? '?' : '??'}</span>
-          <span className="grow"><b>{history[focus!]!.note?.text}</b> {MARK_LABEL[focusMark.kind]} · 더 좋은 수 <b>{focusMark.bestText}</b></span>
+          <span className="grow"><b>{history[focus!]!.note ? noteText(history[focus!]!.note!) : ''}</b> {MARK_LABEL[focusMark.kind]} · 더 좋은 수 <b>{focusMark.bestText}</b></span>
           {nextMark !== undefined ? <button className="btn sm" onClick={() => jumpMark(nextMark)}>다음</button> : <button className="btn sm" onClick={() => { setFocus(null); setView(null); }}>끝</button>}
         </div>
       )

@@ -711,7 +711,7 @@ img, svg { display: block; }
    board, so nothing moves while you play. */
 .m-game { position: fixed; inset: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); padding-bottom: calc(64px + var(--safe-b)); }
 .m-top { position: relative; flex: none; }
-.m-float { position: absolute; left: 8px; right: 8px; top: calc(3px + var(--safe-t)); z-index: 40; border-radius: 12px; background: var(--bg-2); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: float-in 0.18s ease-out; }
+.m-float { position: absolute; left: 8px; right: 8px; top: calc(100% + 4px); z-index: 40; border-radius: 12px; background: var(--bg-2); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: float-in 0.18s ease-out; }
 .m-float > * + * { margin-top: 6px; }
 .m-float .notice { margin: 0; padding: 9px 12px; font-size: 14px; border-radius: 12px; min-height: 44px; }
 @keyframes float-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }

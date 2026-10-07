@@ -92,6 +92,7 @@ POSTGRES_PASSWORD=강한비밀번호 docker compose up -d --build
 | `PORT` | 8080 | |
 | `SEASON` | 1 | 시즌 번호. 올리면 다음 접속부터 새 시즌(레이팅 절반 리셋) |
 | `ABORT_MS` | 30000 | 첫 수를 두지 않으면 대국 취소되는 시간 |
+| `CONTACT_EMAIL` | (없음) | 개인정보처리방침·이용약관·푸터에 보이는 문의 메일. VPS에서는 `deploy/.env`에 적고 `./deploy/update.sh` |
 
 **필수:** 앞단에 HTTPS 리버스 프록시(Caddy, Nginx, 클라우드 로드밸런서)를 두세요. PWA 설치와 `wss://` 연결에 HTTPS가 필요합니다. WebSocket 업그레이드(`/ws`)를 통과시키고 `X-Forwarded-For`를 전달하세요.
 

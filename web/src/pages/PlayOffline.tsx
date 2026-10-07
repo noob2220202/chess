@@ -8,6 +8,7 @@ import { GameScreen, REASON_TEXT, type GameResult, type MenuItem } from '../game
 import { applyAct, startEntry, type Act, type HistEntry } from '../game/history.ts';
 import { navigate } from '../lib/router.tsx';
 import { load, remove, save } from '../lib/storage.ts';
+import { ask } from '../lib/ui.tsx';
 import { useToast } from '../lib/toast.tsx';
 
 type Kind = 'ai' | 'local';
@@ -202,8 +203,8 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
     };
   }
 
-  const resign = () => {
-    if (!confirm('기권하시겠습니까?')) return;
+  const resign = async () => {
+    if (!(await ask({ title: '기권하시겠습니까?', ok: '기권', danger: true }))) return;
     setHist((h) => {
       const last = h[h.length - 1]!;
       const st = { ...last.state, winner: (g.kind === 'local' ? (last.state.turn === 'w' ? 'b' : 'w') : botColor!) as Color, endReason: 'resign' as const };

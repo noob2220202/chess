@@ -12,6 +12,8 @@ export interface GameResult {
   title: string;
   /** Why it ended, e.g. "체크메이트". */
   reason: string;
+  /** The game did not count (aborted before the first moves). */
+  void?: boolean;
   /** Rating change for the viewer (online rated games). */
   delta?: number | null;
   /** Primary buttons (rematch, back to lobby...). */
@@ -104,7 +106,7 @@ export interface GameOverProps {
 
 export function GameOverSheet({ result, state, moves, players, self, onViewBoard, onMoves, onReview }: GameOverProps) {
   const winner = state.winner === 'w' || state.winner === 'b' ? state.winner : null;
-  const score = (c: Color) => (winner ? (winner === c ? '1' : '0') : '½');
+  const score = (c: Color) => (result.void ? '–' : winner ? (winner === c ? '1' : '0') : '½');
   const order: Color[] = self === 'b' ? ['b', 'w'] : ['w', 'b'];
   const cardsOf = (c: Color) => [...state.cards[c].used, ...state.cards[c].hand];
   const anyTaken = state.lost.w.some((t) => t !== 'K') || state.lost.b.some((t) => t !== 'K');
@@ -120,7 +122,7 @@ export function GameOverSheet({ result, state, moves, players, self, onViewBoard
             ))}
           </div>
           <h2>{result.title}</h2>
-          <div className="go-reason">{result.reason} · {Math.ceil(moves / 2)}수</div>
+          <div className="go-reason">{result.reason}{moves > 0 && ` · ${Math.ceil(moves / 2)}수`}</div>
           {result.delta != null && (
             <div className={`go-delta ${result.delta >= 0 ? 'up' : 'down'}`}>레이팅 <b><CountUp to={result.delta} /></b></div>
           )}
@@ -134,7 +136,7 @@ export function GameOverSheet({ result, state, moves, players, self, onViewBoard
               {players[c].sub && <small className="ellipsis">{players[c].sub}</small>}
             </div>
           ))}
-          <div className="go-score" style={{ order: 1 }}>{score(order[0]!)}<i>–</i>{score(order[1]!)}</div>
+          <div className="go-score" style={{ order: 1 }}>{result.void ? <i>vs</i> : <>{score(order[0]!)}<i>–</i>{score(order[1]!)}</>}</div>
         </div>
 
         {(anyTaken || anyCards) && (
@@ -147,8 +149,8 @@ export function GameOverSheet({ result, state, moves, players, self, onViewBoard
         <div className="go-actions">{result.actions}</div>
         <div className="go-links">
           <button className="btn sm ghost" onClick={onViewBoard}><Eye />보드 보기</button>
-          <button className="btn sm ghost" onClick={onMoves}><ListOrdered />기보</button>
-          {onReview && <button className="btn sm ghost review-btn" onClick={onReview}><SearchCheck />복기</button>}
+          {moves > 0 && <button className="btn sm ghost" onClick={onMoves}><ListOrdered />기보</button>}
+          {onReview && moves >= 4 && <button className="btn sm ghost review-btn" onClick={onReview}><SearchCheck />복기</button>}
         </div>
       </div>
     </Sheet>
