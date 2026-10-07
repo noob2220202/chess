@@ -3,7 +3,7 @@ import { BookOpen, Bot, ChevronRight, Circle, CircleCheck, Flag, LogOut, Play, T
 import type { BotLevel, CardId, Color, GameState, Move, Square } from '@engine';
 import { applyMove, newGame, pickCard, playCard } from '@engine';
 import { askBot } from '../bot/client.ts';
-import { GameScreen, REASON_TEXT, ResultModal, type MenuItem } from '../game/GameScreen.tsx';
+import { GameScreen, REASON_TEXT, type GameResult, type MenuItem } from '../game/GameScreen.tsx';
 import { applyAct, startEntry, type Act, type HistEntry } from '../game/history.ts';
 import { navigate } from '../lib/router.tsx';
 import { load, remove, save } from '../lib/storage.ts';
@@ -151,16 +151,17 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
     ? { [g.human]: { name: '나' }, [botColor!]: { name: `AI ${levelName}`, sub: thinking ? '생각 중…' : undefined } } as Record<Color, { name: string; sub?: string }>
     : { w: { name: '백' }, b: { name: '흑' } }), [g, botColor, levelName, thinking]);
 
-  let overlay = null;
+  let result: GameResult | null = null;
   if (s.winner) {
     const outcome = s.winner === 'draw' ? 'draw' : g.kind === 'local' || s.winner === g.human ? 'win' : 'lose';
-    const title = s.winner === 'draw' ? '무승부' : g.kind === 'local' ? `${s.winner === 'w' ? '백' : '흑'} 승리` : s.winner === g.human ? '승리!' : '패배';
-    overlay = (
-      <ResultModal outcome={outcome} title={title} subtitle={REASON_TEXT[s.endReason ?? 'end'] ?? ''}>
-        <button className="btn" onClick={onExit}>설정으로</button>
-        <button className="btn primary" onClick={onRestart}>한 판 더</button>
-      </ResultModal>
-    );
+    const title = s.winner === 'draw' ? '무승부' : g.kind === 'local' ? `${s.winner === 'w' ? '백' : '흑'} 승리` : s.winner === g.human ? '승리' : '패배';
+    result = {
+      outcome, title, reason: REASON_TEXT[s.endReason ?? 'end'] ?? '',
+      actions: <>
+        <button className="btn lg" onClick={onExit}>설정 바꾸기</button>
+        <button className="btn lg primary" onClick={onRestart}>한 판 더</button>
+      </>,
+    };
   }
 
   const resign = () => {
@@ -193,7 +194,7 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
         onCard={onCard}
         onMove={onMove}
         status={status}
-        overlay={overlay}
+        result={result}
         menu={menu}
         title={g.kind === 'ai' ? `AI ${levelName}` : '로컬 2인'}
         onBack={onExit}

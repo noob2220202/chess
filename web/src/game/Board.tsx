@@ -21,6 +21,7 @@ export interface BoardProps {
 }
 
 const CENTER = [27, 28, 35, 36];
+const END_MARK: Record<string, string> = { checkmate: '#', resign: '⚑', timeout: '⏱', abandon: '⚑', 'no-moves': '#', 'card-win': '✦', 'king-captured': '✕' };
 type Arrow = { from: Square; to: Square; color: string };
 const ARROW_COLORS = { g: 'rgba(21, 120, 27, 0.8)', r: 'rgba(190, 40, 30, 0.8)', b: 'rgba(0, 48, 136, 0.8)', y: 'rgba(225, 150, 0, 0.85)' };
 
@@ -182,11 +183,14 @@ export function Board({ state, orientation, actor, lastMove, targeting, guide, o
       style = { transform: `translate(${drag!.x - b.left - size / 2}px, ${drag!.y - b.top - size / 2 - lift}px) scale(${drag!.touch ? 1.45 : 1.08})` };
     }
     const badges = statusBadges(p, state.ply);
+    // Game over: the losing king topples, the winner gets a crown; draws mark both kings.
+    const over = p.type === 'K' && state.winner ? (state.winner === 'draw' ? 'even' : state.winner === p.color ? 'champ' : 'ko') : '';
     pieces.push(
-      <div key={p.id} className={`piece ${badges.map((b) => `st-${b.kind}`).join(' ')}${dragging ? ' dragging' : ''}`} style={style}
+      <div key={p.id} className={`piece ${badges.map((b) => `st-${b.kind}`).join(' ')}${dragging ? ' dragging' : ''}${over ? ` ${over}` : ''}`} style={style}
         title={`${p.color === 'w' ? '백' : '흑'} ${PIECE_NAME[p.type]}${badges.map((b) => ` · ${b.label}`).join('')}`}>
         <PieceIcon type={p.type} color={p.color} />
         {badges[0] && <span className={`st ${badges[0].kind}`}>{badges[0].turns}</span>}
+        {over && <span className={`endmark ${over}`}>{over === 'champ' ? '♛' : over === 'even' ? '½' : END_MARK[state.endReason ?? ''] ?? '✕'}</span>}
       </div>,
     );
   }

@@ -13,6 +13,9 @@ import { CardChip, CardView, rarity } from './CardView.tsx';
 import { CATEGORY_HINT, CATEGORY_LABEL } from './cardMeta.ts';
 import type { HistEntry } from './history.ts';
 import { pieceSrc } from './PieceIcon.tsx';
+import { Confetti, GameOverSheet, type GameResult } from './GameOver.tsx';
+
+export type { GameResult } from './GameOver.tsx';
 
 export interface PlayerInfo { name: string; sub?: string; clockMs?: number | null; running?: boolean }
 export interface MenuItem { label: string; icon?: ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean }
@@ -32,6 +35,8 @@ export interface GameScreenProps {
   /** Game actions (resign, draw, exit...). Buttons on desktop, menu sheet on mobile. */
   menu?: MenuItem[];
   overlay?: ReactNode;
+  /** Game-over presentation (board finish, result sheet). */
+  result?: GameResult | null;
   hideDraft?: boolean;
   guide?: Guide | null;
   guideCard?: CardId | null;
@@ -198,11 +203,15 @@ export function GameScreen(p: GameScreenProps) {
   useEffect(() => { setTarget(null); setConfirm(null); setView(null); setSheet((s) => (s?.kind === 'card' ? null : s)); }, [liveIdx]);
 
   // Let the final move land (and the mated king light up) before the result sheet covers the board.
-  const hasOverlay = !!p.overlay;
+  const hasOverlay = !!p.overlay || !!p.result;
   const [overlayReady, setOverlayReady] = useState(hasOverlay);
+  const [collapsed, setCollapsed] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
   useEffect(() => {
-    if (!hasOverlay) { setOverlayReady(false); return; }
-    const t = setTimeout(() => setOverlayReady(true), history[history.length - 1]?.kind === 'move' ? 650 : 0);
+    if (!hasOverlay) { setOverlayReady(false); setCollapsed(false); return; }
+    const ending = history[history.length - 1]?.kind === 'move';
+    if (ending && p.result?.outcome === 'win') { setCelebrate(true); setTimeout(() => setCelebrate(false), 2300); }
+    const t = setTimeout(() => setOverlayReady(true), ending ? 900 : 0);
     return () => clearTimeout(t);
   }, [hasOverlay]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -350,6 +359,15 @@ export function GameScreen(p: GameScreenProps) {
         </Sheet>
       )}
       {overlayReady && p.overlay}
+      {overlayReady && p.result && !collapsed && (
+        <GameOverSheet result={p.result} state={live} moves={history.filter((e) => e.kind === 'move').length}
+          players={p.players} self={p.self ?? null}
+          onViewBoard={() => setCollapsed(true)} onMoves={() => { setCollapsed(true); setSheet({ kind: 'moves' }); }} />
+      )}
+      {overlayReady && p.result && collapsed && (
+        <button className={`go-pill ${p.result.outcome}`} onClick={() => setCollapsed(false)}><Trophy />{p.result.title} · 결과 보기</button>
+      )}
+      {celebrate && <Confetti />}
     </>
   );
 
@@ -437,17 +455,3 @@ export const REASON_TEXT: Record<string, string> = {
   'quiet-limit': '100수 동안 잡거나 폰을 움직이지 않았습니다', repetition: '같은 국면이 세 번 나왔습니다', resign: '기권', timeout: '시간 초과',
   agreement: '합의 무승부', abort: '대국 취소', abandon: '이탈', end: '종료',
 };
-
-export function ResultModal({ outcome, title, subtitle, delta, children }: { outcome: 'win' | 'lose' | 'draw'; title: string; subtitle: string; delta?: number | null; children: ReactNode }) {
-  return (
-    <Sheet label="대국 결과">
-      <div className="result">
-        <div className={`emblem ${outcome}`}>{outcome === 'win' ? <Trophy /> : outcome === 'draw' ? <Handshake /> : <Flag />}</div>
-        <h2>{title}</h2>
-        <div className="why">{subtitle}</div>
-        {delta != null && <div className={`delta ${delta >= 0 ? 'up' : 'down'}`}>레이팅 {delta >= 0 ? `+${delta}` : delta}</div>}
-        <div className="row wrap" style={{ justifyContent: 'center', marginTop: 18 }}>{children}</div>
-      </div>
-    </Sheet>
-  );
-}

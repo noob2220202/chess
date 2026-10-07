@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronRight, Flag, Handshake, Swords, Timer, Trophy, UserRound } from 'lucide-react';
 import type { Color } from '@engine';
-import { GameScreen, REASON_TEXT, ResultModal, type MenuItem } from '../game/GameScreen.tsx';
+import { GameScreen, REASON_TEXT, type GameResult, type MenuItem } from '../game/GameScreen.tsx';
 import { cardEntry, moveEntry, pickEntry, startEntry, type HistEntry } from '../game/history.ts';
 import { useOnline, type GameView } from '../lib/online.tsx';
 import { Link, navigate } from '../lib/router.tsx';
@@ -140,19 +140,20 @@ function OnlineGame() {
     else if (o.status !== 'online') status = <div className="notice"><span className="spinner" />서버 재연결 중…</div>;
   }
 
-  let overlay = null;
+  let result: GameResult | null = null;
   if (g.result) {
     const w = g.result.winner;
     const outcome = w === 'draw' || w === 'aborted' ? 'draw' : w === you ? 'win' : 'lose';
-    const title = w === 'aborted' ? '대국 취소' : w === 'draw' ? '무승부' : w === you ? '승리!' : '패배';
-    overlay = (
-      <ResultModal outcome={outcome} title={title} subtitle={REASON_TEXT[g.result.reason] ?? g.result.reason} delta={g.result.ratingDelta?.[you] ?? null}>
-        <button className="btn" onClick={o.dismissGame}>로비로</button>
+    const title = w === 'aborted' ? '대국 취소' : w === 'draw' ? '무승부' : w === you ? '승리' : '패배';
+    result = {
+      outcome, title, reason: REASON_TEXT[g.result.reason] ?? g.result.reason, delta: g.result.ratingDelta?.[you] ?? null,
+      actions: <>
+        <button className="btn lg" onClick={o.dismissGame}>로비로</button>
         {g.friendly && g.result.winner !== 'aborted'
-          ? <button className="btn primary" onClick={() => { o.challenge(g.userIds[opp], g.mode); o.dismissGame(); navigate('/friends'); }}>재대국 신청</button>
-          : <button className="btn primary" onClick={() => { const m = g.mode; o.dismissGame(); o.joinQueue(m); }}>다시 매칭</button>}
-      </ResultModal>
-    );
+          ? <button className="btn lg primary" onClick={() => { o.challenge(g.userIds[opp], g.mode); o.dismissGame(); navigate('/friends'); }}>재대국 신청</button>
+          : <button className="btn lg primary" onClick={() => { const m = g.mode; o.dismissGame(); o.joinQueue(m); }}>다시 매칭</button>}
+      </>,
+    };
   }
 
   const menu: MenuItem[] = g.result ? [] : [
@@ -172,7 +173,7 @@ function OnlineGame() {
         onCard={(id, sel) => send({ type: 'card', id, sel })}
         onMove={(move) => send({ type: 'move', move })}
         status={status}
-        overlay={overlay}
+        result={result}
         menu={menu}
         title={`${g.friendly ? '친선 ' : ''}${g.rated ? '레이팅전' : '일반전'} · ${g.increment === 5000 ? '10+5' : '5+3'}`}
         onBack={() => navigate('/')}

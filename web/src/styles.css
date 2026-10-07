@@ -785,3 +785,71 @@ img, svg { display: block; }
 .sq.check::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: radial-gradient(circle, rgba(255, 40, 30, 0.95) 0%, rgba(230, 30, 20, 0.6) 32%, rgba(200, 0, 0, 0) 72%); }
 .sq .mark.sand::before { content: ''; position: absolute; inset: 7%; border-radius: 6px; border: 3px dashed #b88a3c; background: radial-gradient(circle, rgba(184, 138, 60, 0.45), rgba(120, 84, 30, 0.25)); }
+
+/* ------------------------------------------------------------------ game over */
+/* On the board: the losing king topples, the winner gets a crown. */
+.piece.ko > img:first-child { transform-origin: 50% 88%; animation: topple 0.7s cubic-bezier(0.55, 0, 0.3, 1.25) 0.15s both; }
+@keyframes topple { to { transform: rotate(84deg) translate(6%, 4%); filter: grayscale(0.35) brightness(0.85); } }
+.piece.champ > img:first-child { animation: champ 0.9s ease-out 0.2s both; filter: drop-shadow(0 0 0.3cqw #ffd666) drop-shadow(0 0 1.4cqw rgba(255, 196, 61, 0.85)); }
+@keyframes champ { 0% { transform: scale(1); } 40% { transform: scale(1.14) translateY(-4%); } 100% { transform: scale(1.04); } }
+.piece .endmark { position: absolute; right: -4%; top: -6%; width: 42%; height: 42%; border-radius: 50%; display: grid; place-items: center; z-index: 3;
+  font-size: clamp(10px, 3.2cqw, 17px); font-weight: 900; color: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.85);
+  animation: pop-in 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) 0.55s both; }
+.piece .endmark.champ { background: linear-gradient(160deg, #ffd666, #e0901a); color: #4a2a00; }
+.piece .endmark.ko { background: linear-gradient(160deg, #ff6b5e, #b42318); }
+.piece .endmark.even { background: linear-gradient(160deg, #9aa4b1, #5c6672); }
+@keyframes pop-in { from { transform: scale(0); } to { transform: scale(1); } }
+.confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 80; }
+
+/* Result sheet */
+.go { text-align: center; }
+.go-hero { position: relative; padding: 4px 0 16px; margin: -6px -6px 14px; border-radius: 16px; overflow: hidden; }
+.go-hero::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: 0.9;
+  background: radial-gradient(120% 90% at 50% 0%, var(--go-glow) 0%, transparent 62%); }
+.go.win { --go-glow: rgba(242, 169, 59, 0.38); --go-accent: #f2a93b; }
+.go.lose { --go-glow: rgba(160, 170, 185, 0.18); --go-accent: var(--text-2); }
+.go.draw { --go-glow: rgba(90, 167, 234, 0.25); --go-accent: var(--info); }
+.go-kings { display: flex; justify-content: center; align-items: flex-end; gap: 10px; height: 92px; margin: 6px 0 6px; }
+.go-kings img { width: 76px; height: 76px; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.4)); }
+.go-kings img.up { animation: king-rise 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) both; filter: drop-shadow(0 0 10px rgba(255, 196, 61, 0.7)) drop-shadow(0 6px 10px rgba(0, 0, 0, 0.4)); }
+.go-kings img.down { transform-origin: 50% 90%; animation: king-fall 0.8s cubic-bezier(0.55, 0, 0.3, 1.2) 0.15s both; }
+.go-kings img.even { animation: king-rise 0.6s ease-out both; opacity: 0.9; }
+@keyframes king-rise { from { transform: translateY(14px) scale(0.85); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes king-fall { from { transform: rotate(0); } to { transform: rotate(82deg) translate(-34%, -4%); opacity: 0.55; } }
+.go h2 { font-size: 34px; font-weight: 900; letter-spacing: -0.03em; color: var(--go-accent); margin-top: 2px; }
+.go.lose h2 { color: var(--text); }
+.go-reason { display: inline-block; margin-top: 6px; padding: 3px 12px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); font-size: 13.5px; font-weight: 700; }
+.go-delta { margin-top: 10px; font-size: 15px; font-weight: 700; color: var(--text-2); }
+.go-delta b { font-family: var(--mono); font-size: 24px; font-weight: 900; margin-left: 4px; }
+.go-delta.up b { color: var(--good); }
+.go-delta.down b { color: var(--bad); }
+.go-players { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
+.go-players .gp { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; border-radius: 10px; }
+.go-players .gp img { width: 34px; height: 34px; }
+.go-players .gp b { font-size: 15px; max-width: 100%; }
+.go-players .gp small { font-size: 12.5px; color: var(--muted); max-width: 100%; }
+.go-players .gp.won b { color: var(--go-accent); }
+.go-score { flex: none; font-family: var(--mono); font-size: 26px; font-weight: 900; letter-spacing: -0.02em; }
+.go-score i { font-style: normal; color: var(--muted); margin: 0 6px; font-weight: 600; }
+.go-table { margin-top: 10px; text-align: left; }
+.go-row { display: grid; grid-template-columns: 64px 1fr 1fr; gap: 8px; align-items: start; padding: 9px 2px; font-size: 13.5px; }
+.go-row + .go-row { box-shadow: inset 0 1px 0 var(--line); }
+.go-row .k { color: var(--muted); font-weight: 700; padding-top: 3px; }
+.go-row .v { min-width: 0; }
+.go-taken { display: flex; flex-wrap: wrap; }
+.go-taken img { width: 20px; height: 20px; margin-right: -6px; }
+.go-cards { display: flex; flex-direction: column; gap: 4px; }
+.go-cards .hchip { min-height: 0; padding: 3px 8px 3px 3px; font-size: 12.5px; }
+.go-cards .hchip .em { width: 24px; height: 24px; border-radius: 7px; }
+.go-cards .hchip .em svg { width: 16px; height: 16px; }
+.go-cards .hchip .k { display: none; }
+.go-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 16px; }
+.go-actions .btn { margin: 0; }
+.go-links { display: flex; justify-content: center; gap: 4px; margin-top: 8px; }
+.go-pill { position: fixed; left: 50%; bottom: calc(80px + var(--safe-b)); transform: translateX(-50%); z-index: 50; display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px; border: 0; border-radius: 999px; font-weight: 800; font-size: 15px; cursor: pointer; color: #2a1800;
+  background: linear-gradient(160deg, #ffd666, #e8921f); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); animation: float-in 0.2s ease-out; }
+.go-pill.lose, .go-pill.draw { color: var(--text); background: var(--surface-3); }
+.go-pill svg { width: 18px; height: 18px; }
+@media (min-width: 761px) { .go-pill { bottom: 28px; } }
+@media (prefers-reduced-motion: reduce) { .piece.ko > img:first-child, .go-kings img { animation-duration: 0.01s; } }
