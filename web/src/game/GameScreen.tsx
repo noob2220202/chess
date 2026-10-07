@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Ellipsis, Flag, Handshake, Layers, ListOrdered, Repeat, Settings as SettingsIcon, Trophy, X,
+  ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Ellipsis, Flag, Handshake, Layers, ListOrdered, Repeat, Settings as SettingsIcon, Timer, Trophy, X,
 } from 'lucide-react';
 import type { CardId, Color, GameState, Move, PieceType, Square } from '@engine';
-import { CARDS, PIECE_VALUE, cardReady, targetOptions } from '@engine';
+import { CARDS, OVERTIME_PLY, OVERTIME_QUIET, PIECE_VALUE, cardReady, notate, targetOptions } from '@engine';
+import { reviewMoves } from '../bot/client.ts';
 import { josa } from '../lib/korean.ts';
 import { useSettings } from '../lib/settings.tsx';
 import { haptic, setSoundEnabled, sound } from '../lib/sound.ts';
@@ -34,6 +35,8 @@ export interface GameScreenProps {
   statusInline?: boolean;
   /** Game actions (resign, draw, exit...). Buttons on desktop, menu sheet on mobile. */
   menu?: MenuItem[];
+  /** Frequent actions (undo, hint) shown directly in the phone action bar and the desktop side panel. */
+  tools?: MenuItem[];
   overlay?: ReactNode;
   /** Game-over presentation (board finish, result sheet). */
   result?: GameResult | null;
@@ -147,8 +150,11 @@ export function CardSheet({ id, onClose, onUse, useGuide }: { id: CardId; onClos
   );
 }
 
+export interface ReviewMark { kind: 'blunder' | 'mistake' | 'miss'; best: Move; bestText: string }
+const MARK_LABEL: Record<ReviewMark['kind'], string> = { blunder: '큰 실수', mistake: '실수', miss: '이기는 수를 놓침' };
+
 /** Numbered move list with figurines and card events inline. */
-function MoveList({ history, view, onSelect }: { history: HistEntry[]; view: number; onSelect: (i: number) => void }) {
+function MoveList({ history, view, onSelect, marks }: { history: HistEntry[]; view: number; onSelect: (i: number) => void; marks?: Record<number, ReviewMark> }) {
   const ref = useRef<HTMLDivElement>(null);
   const rows: Array<{ n: number; w: number[]; b: number[] }> = [];
   let cur: { n: number; w: number[]; b: number[] } | null = null;
@@ -163,7 +169,8 @@ function MoveList({ history, view, onSelect }: { history: HistEntry[]; view: num
   const cell = (idx: number[]) => {
     if (!idx.length) return <span className="mv" />;
     return (
-      <button className={`mv${idx.includes(view) ? ' cur' : ''}`} onClick={() => onSelect(idx[idx.length - 1]!)}>
+      <button className={`mv${idx.includes(view) || idx.some((i) => i - 1 === view && marks?.[i]) ? ' cur' : ''}`}
+        onClick={() => onSelect(idx.find((i) => marks?.[i]) ?? idx[idx.length - 1]!)}>
         {idx.map((i) => {
           const e = history[i]!;
           if (e.kind === 'pick') return <span key={i} className="ev pick">{CARDS[e.card!]?.name}</span>;
@@ -172,6 +179,7 @@ function MoveList({ history, view, onSelect }: { history: HistEntry[]; view: num
             <span key={i} className="row" style={{ gap: 1 }}>
               {e.note?.piece && e.note.piece !== 'P' && <img src={pieceSrc(e.color!, BASE[e.note.piece])} alt={e.note.piece} />}
               {e.note?.text}
+              {marks?.[i] && <i className={`mk ${marks[i]!.kind}`}>{marks[i]!.kind === 'mistake' ? '?' : '??'}</i>}
             </span>
           );
         })}
@@ -280,12 +288,51 @@ export function GameScreen(p: GameScreenProps) {
     if (picked.length === (CARDS[target.id]!.targets?.length ?? 0)) { setTarget(null); p.onCard(target.id, picked); }
     else setTarget({ ...target, picked });
   }
+  /** One tap uses a ready card; otherwise (or on long press) show its details. */
   function tapCard(id: CardId) {
-    if (!mobile && isReady(id)) return startCard(id);
+    if (target?.id === id) return setTarget(null);
+    if (isReady(id)) return startCard(id);
     setSheet({ kind: 'card', id });
   }
+  const showCard = (id: CardId) => setSheet({ kind: 'card', id });
 
-  const boardGuide = viewing ? null
+  // ---- post-game review
+  const [marks, setMarks] = useState<Record<number, ReviewMark>>({});
+  const [reviewing, setReviewing] = useState<{ done: number; total: number } | null>(null);
+  const [reviewDone, setReviewDone] = useState<{ blunders: number; mistakes: number } | null>(null);
+  const [focus, setFocus] = useState<number | null>(null);
+  const focusMark = focus !== null && view === focus - 1 ? marks[focus] ?? null : null;
+  async function startReview() {
+    setCollapsed(true);
+    const idx = history.map((e, i) => i).filter((i) => i > 0 && history[i]!.kind === 'move' && history[i]!.move && (!p.self || history[i]!.color === p.self));
+    if (!idx.length) return;
+    setReviewing({ done: 0, total: idx.length });
+    try {
+      const res = await reviewMoves(idx.map((i) => ({ state: history[i - 1]!.state, move: history[i]!.move! })), (done, total) => setReviewing({ done, total }));
+      const m: Record<number, ReviewMark> = {};
+      let blunders = 0, mistakes = 0;
+      res.forEach((r, k) => {
+        if (!r) return;
+        const i = idx[k]!, WIN = 50000;
+        const drop = r.bestScore - r.playedScore;
+        const kind: ReviewMark['kind'] | null = r.bestScore > WIN && r.playedScore < WIN ? 'miss' : drop >= 3 ? 'blunder' : drop >= 1.5 ? 'mistake' : null;
+        if (!kind) return;
+        m[i] = { kind, best: r.best, bestText: notate(history[i - 1]!.state, r.best).text };
+        if (kind === 'mistake') mistakes++; else blunders++;
+      });
+      setMarks(m);
+      setReviewDone({ blunders, mistakes });
+      const first = idx.find((i) => m[i]);
+      if (first !== undefined) { setFocus(first); setView(first - 1); }
+    } finally {
+      setReviewing(null);
+    }
+  }
+  const markIdx = Object.keys(marks).map(Number).sort((a, b) => a - b);
+  const jumpMark = (i: number) => { setFocus(i); setView(i - 1); setSheet(null); };
+  const selectMove = (i: number) => (marks[i] ? jumpMark(i) : (setFocus(null), go(i)));
+
+  const boardGuide = viewing ? (focusMark ? { squares: [focusMark.best.from, focusMark.best.to], label: '더 좋은 수' } : null)
     : target ? (p.guide && p.guide.squares[target.picked.length] !== undefined ? { squares: [p.guide.squares[target.picked.length]!], label: p.guide.label } : null)
       : p.guideCard ? null : p.guide;
 
@@ -304,7 +351,28 @@ export function GameScreen(p: GameScreenProps) {
   );
 
   const extraMove = !viewing && !!canAct && live.effects.some((e) => e.card === 'double-time' && e.owner === canAct && live.ply === e.until - 1);
-  const statusNode = (viewing || target || p.status || extraMove) ? (
+  const overtimeLeft = !live.winner && live.ply >= OVERTIME_PLY ? Math.max(1, Math.ceil((OVERTIME_QUIET - live.quiet) / 2)) : null;
+  const overtimeNode = overtimeLeft !== null
+    ? <div className="notice attn"><Timer /><span className="grow"><b>연장전</b> · {overtimeLeft}수 안에 잡기·폰 이동·카드 사용이 없으면 기물 점수로 판정합니다.</span></div>
+    : null;
+  const nextMark = focus !== null ? markIdx.find((i) => i > focus) : markIdx[0];
+  const reviewNode = reviewing
+    ? <div className="notice info"><span className="spinner" /><span className="grow">복기 분석 중 · {reviewing.done}/{reviewing.total}</span></div>
+    : focusMark
+      ? (
+        <div className={`notice review ${focusMark.kind}`}>
+          <span className={`mk ${focusMark.kind}`}>{focusMark.kind === 'mistake' ? '?' : '??'}</span>
+          <span className="grow"><b>{history[focus!]!.note?.text}</b> {MARK_LABEL[focusMark.kind]} · 더 좋은 수 <b>{focusMark.bestText}</b></span>
+          {nextMark !== undefined ? <button className="btn sm" onClick={() => jumpMark(nextMark)}>다음</button> : <button className="btn sm" onClick={() => { setFocus(null); setView(null); }}>끝</button>}
+        </div>
+      )
+      : reviewDone && !viewing
+        ? (
+          <div className="notice info"><ListOrdered /><span className="grow">복기 완료 · 큰 실수 {reviewDone.blunders} · 실수 {reviewDone.mistakes}{reviewDone.blunders + reviewDone.mistakes ? '' : ' · 깔끔한 대국입니다'}</span>
+            {markIdx.length > 0 && <button className="btn sm" onClick={() => jumpMark(markIdx[0]!)}>처음부터</button>}</div>
+        )
+        : null;
+  const statusNode = reviewNode ?? ((viewing || target || p.status || extraMove || (!mobile && overtimeNode)) ? (
     <>
       {viewing && (
         <div className="notice info"><ListOrdered /><span className="grow">{shownIdx}번째 기록을 보고 있습니다</span><button className="btn sm" onClick={() => setView(null)}>현재로</button></div>
@@ -314,9 +382,9 @@ export function GameScreen(p: GameScreenProps) {
           <Layers /><span className="grow"><b>{CARDS[target.id]!.name}</b> · {CARDS[target.id]!.targets![target.picked.length]?.prompt}{options.length === 0 ? ' (고를 수 있는 칸이 없습니다)' : ''}</span>
           <button className="btn sm" onClick={() => setTarget(null)}>취소</button>
         </div>
-      ) : !viewing && (extraMove ? <div className="notice attn"><Layers /><span className="grow"><b>연속 행동</b> · 한 번 더 두세요. 이번 수로는 잡을 수 없습니다.</span></div> : p.status)}
+      ) : !viewing && (extraMove ? <div className="notice attn"><Layers /><span className="grow"><b>연속 행동</b> · 한 번 더 두세요. 이번 수로는 잡을 수 없습니다.</span></div> : (p.status ?? (mobile ? null : overtimeNode)))}
     </>
-  ) : null;
+  ) : null);
 
   const handCards = [...hand.hand.map((id) => [id, false] as const), ...hand.used.map((id) => [id, true] as const)];
   const menuItems: MenuItem[] = [
@@ -346,7 +414,7 @@ export function GameScreen(p: GameScreenProps) {
       {sheet?.kind === 'moves' && (
         <Sheet onClose={() => setSheet(null)} label="기보">
           <div className="row between" style={{ marginBottom: 8 }}><h2>기보</h2><button className="icon-btn" onClick={() => setSheet(null)} aria-label="닫기"><X /></button></div>
-          <MoveList history={history} view={shownIdx} onSelect={(i) => { go(i); setSheet(null); }} />
+          <MoveList history={history} view={shownIdx} marks={marks} onSelect={(i) => { selectMove(i); setSheet(null); }} />
         </Sheet>
       )}
       {sheet?.kind === 'menu' && (
@@ -362,7 +430,8 @@ export function GameScreen(p: GameScreenProps) {
       {overlayReady && p.result && !collapsed && (
         <GameOverSheet result={p.result} state={live} moves={history.filter((e) => e.kind === 'move').length}
           players={p.players} self={p.self ?? null}
-          onViewBoard={() => setCollapsed(true)} onMoves={() => { setCollapsed(true); setSheet({ kind: 'moves' }); }} />
+          onViewBoard={() => setCollapsed(true)} onMoves={() => { setCollapsed(true); setSheet({ kind: 'moves' }); }}
+          onReview={reviewDone ? undefined : startReview} />
       )}
       {overlayReady && p.result && collapsed && (
         <button className={`go-pill ${p.result.outcome}`} onClick={() => setCollapsed(false)}><Trophy />{p.result.title} · 결과 보기</button>
@@ -376,7 +445,7 @@ export function GameScreen(p: GameScreenProps) {
       <div className={`m-game${p.statusInline ? ' coach-mode' : ''}`}>
         <div className="m-top">
           <button className="icon-btn" onClick={p.onBack ?? (() => history.length && window.history.back())} aria-label="뒤로"><ChevronLeft /></button>
-          <span className="title ellipsis">{p.title ?? ''}</span>
+          <span className="title ellipsis">{p.title ?? ''}{overtimeLeft !== null && <em className="ot-chip">연장전 · {overtimeLeft}수</em>}</span>
           <button className="icon-btn" onClick={openSettings} aria-label="설정"><SettingsIcon /></button>
           {!p.statusInline && statusNode && <div className="m-float">{statusNode}</div>}
         </div>
@@ -390,14 +459,16 @@ export function GameScreen(p: GameScreenProps) {
           {handCards.length === 0 && <span className="empty">아직 카드가 없습니다. 내 0·10·20번째 수에 카드를 고릅니다.</span>}
           {handCards.map(([id, used]) => (
             <CardChip key={id} def={CARDS[id]!} used={used} ready={!used && isReady(id)} guide={p.guideCard === id && !target}
-              selected={target?.id === id} onClick={() => tapCard(id)} />
+              selected={target?.id === id} onClick={() => tapCard(id)} onLongPress={() => showCard(id)} />
           ))}
         </div>
         <nav className="m-actions" aria-label="대국 메뉴">
           <button onClick={() => setSheet({ kind: 'moves' })} disabled={p.showMoves === false}><ListOrdered />기보</button>
           <button onClick={() => go(shownIdx - 1)} disabled={shownIdx === 0}><ChevronLeft />이전</button>
           <button onClick={() => go(shownIdx + 1)} disabled={!viewing}><ChevronRight />다음</button>
-          <button onClick={() => setFlip((x) => !x)}><Repeat />뒤집기</button>
+          {p.tools?.length
+            ? p.tools.map((t) => <button key={t.label} onClick={t.onClick} disabled={t.disabled}>{t.icon}{t.label}</button>)
+            : <button onClick={() => setFlip((x) => !x)}><Repeat />뒤집기</button>}
           <button onClick={() => setSheet({ kind: 'menu' })}><Ellipsis />메뉴</button>
         </nav>
         {sheets}
@@ -420,7 +491,7 @@ export function GameScreen(p: GameScreenProps) {
             <div className="hand-chips">
               {handCards.map(([id, used]) => (
                 <CardChip key={id} def={CARDS[id]!} used={used} ready={!used && isReady(id)} guide={p.guideCard === id && !target}
-                  selected={target?.id === id} onClick={() => tapCard(id)} />
+                  selected={target?.id === id} onClick={() => tapCard(id)} onLongPress={() => showCard(id)} />
               ))}
             </div>
           )}
@@ -428,7 +499,7 @@ export function GameScreen(p: GameScreenProps) {
         {(p.showMoves ?? true) ? (
           <div className="side-box">
             <div className="side-h"><span>기보</span><span className="mono">{history.filter((e) => e.kind === 'move').length}수</span></div>
-            <MoveList history={history} view={shownIdx} onSelect={go} />
+            <MoveList history={history} view={shownIdx} marks={marks} onSelect={selectMove} />
             <div className="nav-row">
               <button className="icon-btn" onClick={() => go(0)} aria-label="처음"><ChevronFirst /></button>
               <button className="icon-btn" onClick={() => go(shownIdx - 1)} aria-label="이전"><ChevronLeft /></button>
@@ -437,9 +508,9 @@ export function GameScreen(p: GameScreenProps) {
               <button className="icon-btn" onClick={() => setFlip((x) => !x)} title="판 뒤집기 (F)"><Repeat /></button>
               <button className="icon-btn" onClick={openSettings} title="설정"><SettingsIcon /></button>
             </div>
-            {p.menu && p.menu.length > 0 && (
-              <div className="ctrl-row">{p.menu.map((m) => <button key={m.label} className={`btn sm${m.danger ? ' danger' : ''}`} disabled={m.disabled} onClick={m.onClick}>{m.icon}{m.label}</button>)}</div>
-            )}
+            {(p.tools?.length || p.menu?.length) ? (
+              <div className="ctrl-row">{[...(p.tools ?? []), ...(p.menu ?? [])].map((m) => <button key={m.label} className={`btn sm${m.danger ? ' danger' : ''}`} disabled={m.disabled} onClick={m.onClick}>{m.icon}{m.label}</button>)}</div>
+            ) : null}
           </div>
         ) : p.menu && p.menu.length > 0 && (
           <div className="row wrap">{p.menu.map((m) => <button key={m.label} className={`btn sm${m.danger ? ' danger' : ''}`} onClick={m.onClick}>{m.icon}{m.label}</button>)}</div>
@@ -451,7 +522,7 @@ export function GameScreen(p: GameScreenProps) {
 }
 
 export const REASON_TEXT: Record<string, string> = {
-  'king-captured': '킹을 잡았습니다', checkmate: '체크메이트', stalemate: '스테일메이트 · 둘 수 있는 수가 없습니다', 'no-moves': '둘 수 있는 수가 없습니다', 'card-win': '카드 효과로 승리', 'ply-limit': '300수에 도달했습니다',
+  'king-captured': '킹을 잡았습니다', checkmate: '체크메이트', overtime: '연장전 판정 · 기물 점수', stalemate: '스테일메이트 · 둘 수 있는 수가 없습니다', 'no-moves': '둘 수 있는 수가 없습니다', 'card-win': '카드 효과로 승리', 'ply-limit': '300수에 도달했습니다',
   'quiet-limit': '100수 동안 잡거나 폰을 움직이지 않았습니다', repetition: '같은 국면이 세 번 나왔습니다', resign: '기권', timeout: '시간 초과',
   agreement: '합의 무승부', abort: '대국 취소', abandon: '이탈', end: '종료',
 };

@@ -12,6 +12,8 @@ export interface HistEntry {
   captured?: boolean;
   /** The move gave check. */
   check?: boolean;
+  /** The move itself (for review). */
+  move?: Move;
 }
 
 function withCheck(n: Notation, after: GameState): Notation {
@@ -25,7 +27,7 @@ export const startEntry = (s: GameState): HistEntry => ({ kind: 'start', color: 
 export function moveEntry(before: GameState, m: Move, after: GameState): HistEntry {
   return {
     kind: 'move', color: before.turn, state: after, last: { from: m.from, to: m.to },
-    note: withCheck(notate(before, m), after), captured: captureSquare(before, m) >= 0, check: !after.winner && inCheck(after),
+    note: withCheck(notate(before, m), after), captured: captureSquare(before, m) >= 0, check: !after.winner && inCheck(after), move: m,
   };
 }
 export function cardEntry(color: Color, id: CardId, after: GameState, last: HistEntry['last']): HistEntry {

@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Check, Infinity as InfinityIcon, Zap } from 'lucide-react';
 import type { CardDef } from '@engine';
 import { CARD_EMBLEMS } from '../assets/cardEmblems.ts';
@@ -63,10 +64,25 @@ export function CardView({ def, mini, used, disabled, selected, done, guide, rea
 }
 
 /** Compact pill for the in-game hand on phones: emblem + name. */
-export function CardChip({ def, used, ready, guide, selected, onClick }: { def: CardDef; used?: boolean; ready?: boolean; guide?: boolean; selected?: boolean; onClick?: () => void }) {
+export function CardChip({ def, used, ready, guide, selected, onClick, onLongPress }: {
+  def: CardDef; used?: boolean; ready?: boolean; guide?: boolean; selected?: boolean; onClick?: () => void;
+  /** Press and hold (or right-click) — used to show the card's details. */
+  onLongPress?: () => void;
+}) {
   const cls = ['hchip', `cat-${def.category}`, used ? 'used' : '', ready ? 'ready' : '', guide ? 'guide' : '', selected ? 'selected' : ''].filter(Boolean).join(' ');
+  const timer = useRef<number | null>(null);
+  const held = useRef(false);
+  const start = () => {
+    if (!onLongPress) return;
+    held.current = false;
+    timer.current = window.setTimeout(() => { held.current = true; onLongPress(); }, 450);
+  };
+  const stop = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
   return (
-    <button className={cls} onClick={onClick} type="button" title={`${def.name}: ${def.description}`} aria-label={`${def.name}${used ? ' (사용함)' : ready ? ' (지금 쓸 수 있음)' : ''}`}>
+    <button className={cls} type="button" title={`${def.name}: ${def.description}`} aria-label={`${def.name}${used ? ' (사용함)' : ready ? ' (지금 쓸 수 있음)' : ''}`}
+      onClick={() => { if (held.current) { held.current = false; return; } onClick?.(); }}
+      onPointerDown={start} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop}
+      onContextMenu={(e) => { if (onLongPress) { e.preventDefault(); stop(); held.current = true; onLongPress(); } }}>
       <span className="em"><Emblem id={def.id} /></span>
       <span className="nm">{def.name}</span>
       {def.kind === 'active' ? <Zap className="k" /> : <InfinityIcon className="k" />}

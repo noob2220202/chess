@@ -1,6 +1,6 @@
 import type { CardId, Color, EndReason, GameState, Move, Square } from './types.ts';
 import { file, other, rank, sq } from './types.ts';
-import { START_PLACEMENT, cloneState, findKing, fromPlacement, positionKey } from './board.ts';
+import { PIECE_VALUE, START_PLACEMENT, cloneState, findKing, fromPlacement, positionKey } from './board.ts';
 import type { CardCategory, DemoAction } from './registry.ts';
 import { CARDS, CARD_ORDER, draftWeight, sources } from './registry.ts';
 import { captureSquare, hasLegalMove, inCheck, legalMoves, sameMove } from './rules.ts';
@@ -14,6 +14,17 @@ export const DRAFT_ROUNDS: readonly CardCategory[] = ['OPENING', 'MIDDLE', 'END'
 export const OFFER_SIZE = 3;
 export const PLY_LIMIT = 300;
 export const QUIET_LIMIT = 100;
+/** Overtime starts after 60 moves each. */
+export const OVERTIME_PLY = 120;
+/** In overtime, 10 moves each without a capture, pawn move or card ends the game on material. */
+export const OVERTIME_QUIET = 20;
+
+/** Material on the board for `color` (kings excluded). */
+export function material(s: GameState, color: Color): number {
+  let n = 0;
+  for (const p of s.board) if (p && p.color === color && p.type !== 'K') n += PIECE_VALUE[p.type];
+  return n;
+}
 
 export interface NewGameOptions {
   seed?: number;
@@ -79,6 +90,10 @@ function startTurn(s: GameState, searching = false): void {
     s.seen[key] = (s.seen[key] ?? 0) + 1;
     if (s.seen[key]! >= 3) return finish(s, 'draw', 'repetition');
     if (s.quiet >= QUIET_LIMIT) return finish(s, 'draw', 'quiet-limit');
+    if (s.ply >= OVERTIME_PLY && s.quiet >= OVERTIME_QUIET) {
+      const w = material(s, 'w'), b = material(s, 'b');
+      return finish(s, Math.abs(w - b) < 0.5 ? 'draw' : w > b ? 'w' : 'b', 'overtime');
+    }
     if (s.ply >= PLY_LIMIT) return finish(s, 'draw', 'ply-limit');
   }
   s.effects = s.effects.filter((e) => e.until > s.ply);
@@ -202,6 +217,7 @@ export function playCard(s: GameState, color: Color, id: CardId, sel: Square[]):
   p.hand.splice(p.hand.indexOf(id), 1);
   p.used.push(id);
   s.cardPly = s.ply;
+  s.quiet = 0; // using a card counts as progress (overtime, quiet-move draw)
   for (const c of ['w', 'b'] as const) if (findKing(s, c) < 0) return finish(s, other(c), 'card-win');
   checkNoMoves(s);
 }

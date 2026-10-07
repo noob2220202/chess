@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyDecision, decide, fromPlacement, isLegal, newGame } from '../src/index.ts';
+import { applyDecision, decide, fromPlacement, isLegal, newGame, reviewMove } from '../src/index.ts';
 import { P } from './helpers.ts';
 
 test('bot finds mate in one at every level', () => {
@@ -39,4 +39,11 @@ test('bot drafts and plays complete legal games', () => {
     applyDecision(s, d);
   }
   assert.ok(s.winner);
+});
+
+test('reviewMove flags a blunder and suggests the winning move', () => {
+  const s = fromPlacement('6k1/5ppp/8/8/8/8/8/R5K1');
+  const r = reviewMove(s, { from: P('g1'), to: P('f1') })!;
+  assert.deepEqual([r.best.from, r.best.to], [P('a1'), P('a8')]);
+  assert.ok(r.bestScore - r.playedScore > 50, 'missing mate is a big drop');
 });

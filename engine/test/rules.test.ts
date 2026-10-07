@@ -139,3 +139,20 @@ test('demo solver returns the shortest plan', async () => {
   assert.ok('card' in plan[0]! && plan[0].card === 'conscript');
   assert.ok('move' in plan[1]!);
 });
+
+test('overtime: after 60 moves each, 10 quiet moves each end the game on material', () => {
+  const s = chess('4k3/8/8/8/8/8/8/R3K2N');
+  s.ply = 120;
+  s.quiet = 0;
+  let i = 0;
+  while (!s.winner && i++ < 40) {
+    if (s.turn === 'w') applyMove(s, mv(s.board[P('h1')] ? 'h1' : 'g3', s.board[P('h1')] ? 'g3' : 'h1'));
+    else applyMove(s, mv(s.board[P('e8')] ? 'e8' : 'd8', s.board[P('e8')] ? 'd8' : 'e8'));
+  }
+  assert.equal(s.endReason === 'overtime' || s.endReason === 'repetition', true);
+  const t = chess('4k3/8/8/8/8/8/8/R3K3');
+  t.ply = 140; t.quiet = 19;
+  applyMove(t, mv('e1', 'f1'));
+  assert.equal(t.winner, 'w');
+  assert.equal(t.endReason, 'overtime');
+});

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Bot, ChevronRight, Circle, CircleCheck, Flag, LogOut, Play, Trash2 } from 'lucide-react';
-import type { BotLevel, CardId, Color, GameState, Move, Square } from '@engine';
+import { BookOpen, Bot, ChevronRight, Circle, CircleCheck, Flag, Lightbulb, LogOut, Play, Trash2, Undo2 } from 'lucide-react';
+import type { BotDecision, BotLevel, CardId, Color, GameState, Move, Square } from '@engine';
+import { CARDS } from '@engine';
 import { applyMove, newGame, pickCard, playCard } from '@engine';
 import { askBot } from '../bot/client.ts';
 import { GameScreen, REASON_TEXT, type GameResult, type MenuItem } from '../game/GameScreen.tsx';
@@ -11,7 +12,7 @@ import { useToast } from '../lib/toast.tsx';
 
 type Kind = 'ai' | 'local';
 interface Settings { level: BotLevel; color: Color | 'random'; mirror: boolean }
-interface Saved { kind: Kind; settings: Settings; human: Color; initial: GameState; actions: Act[] }
+interface Saved { kind: Kind; settings: Settings; human: Color; initial: GameState; actions: Act[]; /** Unique per game, so "one more game" always starts fresh. */ id?: number }
 
 const ENGINE = { pickCard, playCard, applyMove };
 export const LEVELS: Array<[BotLevel, string, string]> = [[1, '입문', '실수가 잦은 상대'], [2, '보통', '기본 전술을 아는 상대'], [3, '고수', '세 수 앞을 읽는 상대']];
@@ -29,16 +30,17 @@ export default function PlayOffline({ kind }: { kind: Kind }) {
   const params = new URLSearchParams(location.search);
   const [saved, setSaved] = useState<Saved | null>(() => load<Saved | null>(KEY(kind), null));
   const [settings, setSettings] = useState<Settings>(() => {
-    const s = load(`aa.settings.${kind}`, { level: 2 as BotLevel, color: 'w' as Color | 'random', mirror: true });
+    // v2: AI games default to different cards per side (more variety); rated play keeps the mirror draft.
+    const s = load(`aa.settings.v2.${kind}`, { level: 2 as BotLevel, color: 'w' as Color | 'random', mirror: false });
     const lv = Number(params.get('level'));
     return lv >= 1 && lv <= 3 ? { ...s, level: lv as BotLevel } : s;
   });
   const [game, setGame] = useState<Saved | null>(null);
 
   const start = useCallback((st: Settings) => {
-    save(`aa.settings.${kind}`, st);
+    save(`aa.settings.v2.${kind}`, st);
     const human: Color = kind === 'local' ? 'w' : st.color === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : st.color;
-    setGame({ kind, settings: st, human, initial: newGame({ mirror: st.mirror }), actions: [] });
+    setGame({ kind, settings: st, human, initial: newGame({ mirror: st.mirror }), actions: [], id: Date.now() });
   }, [kind]);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function PlayOffline({ kind }: { kind: Kind }) {
     if (params.get('start') === '1') { history.replaceState(null, '', location.pathname); start(settings); }
   }, [kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (game) return <OfflineGame key={`${game.initial.board.map((p) => p?.id ?? 0).join('')}-${game.human}`} initial={game} onExit={() => { setGame(null); setSaved(load<Saved | null>(KEY(kind), null)); }} onRestart={() => start(settings)} />;
+  if (game) return <OfflineGame key={game.id ?? `${game.initial.board.map((p) => p?.id ?? 0).join('')}-${game.human}`} initial={game} onExit={() => { setGame(null); setSaved(load<Saved | null>(KEY(kind), null)); }} onRestart={() => start(settings)} />;
 
   const LV_IC = ['teal', 'blue', 'violet'];
   return (
@@ -109,6 +111,10 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
   const g = initial;
   const botColor: Color | null = g.kind === 'ai' ? (g.human === 'w' ? 'b' : 'w') : null;
   const busy = useRef(false);
+  /** Bumped on undo so a bot reply computed for the old position is dropped. */
+  const gen = useRef(0);
+  const [hint, setHint] = useState<{ move?: Move; card?: CardId } | null>(null);
+  const [hinting, setHinting] = useState(false);
   const s = hist[hist.length - 1]!.state;
 
   useEffect(() => {
@@ -124,7 +130,37 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
     histRef.current = next;
     setHist(next);
     setActions((xs) => [...xs, ...list]);
+    // A played card keeps the move half of a hint; anything else clears it.
+    setHint((h) => (h && list.every((a) => a.t === 'card') ? { move: h.move } : null));
   }, [toast]);
+
+  const undo = () => {
+    gen.current++;
+    busy.current = false;
+    setThinking(false);
+    setHint(null);
+    const acts = [...actions];
+    // Against the AI, take back the AI's reply and your own last turn; locally, the last turn.
+    if (botColor) while (acts.length && acts[acts.length - 1]!.c === botColor) acts.pop();
+    const c = acts[acts.length - 1]?.c;
+    if (!c) return;
+    while (acts.length && acts[acts.length - 1]!.c === c) acts.pop();
+    const h = replay({ ...g, actions: acts });
+    histRef.current = h;
+    setHist(h);
+    setActions(acts);
+  };
+
+  const askHint = () => {
+    if (hinting) return;
+    setHinting(true);
+    askBot(s, 3).then((d: BotDecision) => {
+      setHinting(false);
+      if (d.kind === 'pick') { toast(`추천 카드: ${CARDS[d.id]?.name ?? d.id}`); return; }
+      setHint({ move: d.move, card: d.card?.id });
+      if (d.card) toast(`추천: “${CARDS[d.card.id]?.name}” 카드를 쓴 뒤 표시된 수를 두세요.`);
+    }).catch(() => setHinting(false));
+  };
 
   const onPick = (id: CardId) => act([{ t: 'pick', c: s.turn, id }]);
   const onCard = (id: CardId, sel: Square[]) => act([{ t: 'card', c: s.turn, id, sel }]);
@@ -135,8 +171,10 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
     busy.current = true;
     setThinking(true);
     const started = Date.now();
+    const my = gen.current;
     askBot(s, g.settings.level).then((d) => {
       setTimeout(() => {
+        if (gen.current !== my) return; // the position was taken back meanwhile
         busy.current = false;
         setThinking(false);
         if (d.kind === 'pick') act([{ t: 'pick', c: botColor, id: d.id }]);
@@ -172,6 +210,11 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
       return [...h.slice(0, -1), { ...last, state: st }];
     });
   };
+  const myTurn = !s.winner && actor !== null;
+  const tools: MenuItem[] = [
+    { label: '무르기', icon: <Undo2 />, onClick: undo, disabled: !actions.some((a) => g.kind === 'local' || a.c === g.human) },
+    ...(s.winner ? [] : [{ label: hinting ? '생각 중' : '힌트', icon: <Lightbulb />, onClick: askHint, disabled: !myTurn || hinting }]),
+  ];
   const menu: MenuItem[] = [
     ...(s.winner ? [] : [{ label: '기권', icon: <Flag />, onClick: resign, danger: true }]),
     { label: '카드 백과', icon: <BookOpen />, onClick: () => navigate('/cards') },
@@ -195,6 +238,9 @@ function OfflineGame({ initial, onExit, onRestart }: { initial: Saved; onExit: (
         onMove={onMove}
         status={status}
         result={result}
+        tools={tools}
+        guide={hint?.move && !hint.card ? { squares: [hint.move.from, hint.move.to], label: '추천 수' } : null}
+        guideCard={hint?.card ?? null}
         menu={menu}
         title={g.kind === 'ai' ? `AI ${levelName}` : '로컬 2인'}
         onBack={onExit}

@@ -149,3 +149,36 @@ export function applyDecision(s: GameState, d: BotDecision): void {
 
 export const kingsAlive = (s: GameState): boolean => findKing(s, 'w') >= 0 && findKing(s, 'b') >= 0;
 void other;
+
+export interface MoveReview {
+  /** Best move found and its score for the mover. */
+  best: Move;
+  bestScore: number;
+  /** Score of the move actually played, for the mover. */
+  playedScore: number;
+}
+
+/**
+ * Compare a played move with the best move in a position (bot depth 2), for post-game review.
+ * Scores are from the mover's point of view, in pawns.
+ */
+export function reviewMove(s: GameState, played: Move): MoveReview | null {
+  const me = s.turn;
+  const moves = legalMoves(s);
+  if (!moves.length) return null;
+  const depth = 2;
+  const score = (m: Move) => {
+    const c = cloneState(s);
+    applyMove(c, m, true);
+    if (c.winner) return evaluate(c, me);
+    const ctx: SearchCtx = { nodes: 0, limit: 20000 };
+    return c.turn === me ? negamax(c, depth - 1, -Infinity, Infinity, ctx) : -negamax(c, depth - 1, -Infinity, Infinity, ctx);
+  };
+  let best = moves[0]!, bestScore = -Infinity;
+  for (const m of orderMoves(s, moves)) {
+    const v = score(m);
+    if (v > bestScore) { bestScore = v; best = m; }
+  }
+  const same = best.from === played.from && best.to === played.to && best.promotion === played.promotion;
+  return { best, bestScore, playedScore: same ? bestScore : score(played) };
+}

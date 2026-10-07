@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Eye, ListOrdered } from 'lucide-react';
+import { Eye, ListOrdered, SearchCheck } from 'lucide-react';
 import type { CardId, Color, GameState, PieceType } from '@engine';
 import { CARDS, PIECE_VALUE } from '@engine';
 import { Sheet } from '../lib/ui.tsx';
@@ -98,9 +98,11 @@ export interface GameOverProps {
   self: Color | null;
   onViewBoard: () => void;
   onMoves: () => void;
+  /** Start the move-by-move review (absent once done). */
+  onReview?: () => void;
 }
 
-export function GameOverSheet({ result, state, moves, players, self, onViewBoard, onMoves }: GameOverProps) {
+export function GameOverSheet({ result, state, moves, players, self, onViewBoard, onMoves, onReview }: GameOverProps) {
   const winner = state.winner === 'w' || state.winner === 'b' ? state.winner : null;
   const score = (c: Color) => (winner ? (winner === c ? '1' : '0') : '½');
   const order: Color[] = self === 'b' ? ['b', 'w'] : ['w', 'b'];
@@ -146,6 +148,7 @@ export function GameOverSheet({ result, state, moves, players, self, onViewBoard
         <div className="go-links">
           <button className="btn sm ghost" onClick={onViewBoard}><Eye />보드 보기</button>
           <button className="btn sm ghost" onClick={onMoves}><ListOrdered />기보</button>
+          {onReview && <button className="btn sm ghost review-btn" onClick={onReview}><SearchCheck />복기</button>}
         </div>
       </div>
     </Sheet>
