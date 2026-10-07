@@ -153,9 +153,18 @@ export function targetOptions(s: GameState, color: Color, id: CardId, picked: Sq
   const def = CARDS[id];
   const spec = def?.targets?.[picked.length];
   if (!spec) return [];
+  const last = picked.length === def.targets!.length - 1;
   const out: Square[] = [];
-  for (let x = 0; x < 64; x++) if (spec.ok(s, color, x, picked)) out.push(x);
+  for (let x = 0; x < 64; x++) if (spec.ok(s, color, x, picked) && (!last || cardKeepsKingSafe(s, color, id, [...picked, x]))) out.push(x);
   return out;
+}
+
+/** Like a move, a card may not leave the player's own king in check. */
+export function cardKeepsKingSafe(s: GameState, color: Color, id: CardId, sel: Square[]): boolean {
+  if (s.sandbox) return true;
+  const c = cloneState(s);
+  CARDS[id]!.activate!(c, color, sel);
+  return findKing(c, color) < 0 || !inCheck(c, color);
 }
 
 /** Can the card be started (ignoring targets)? */
@@ -172,6 +181,7 @@ export function cardReady(s: GameState, color: Color, id: CardId): boolean {
 
 function hasCompletion(s: GameState, color: Color, id: CardId, picked: Square[]): boolean {
   const n = CARDS[id]!.targets?.length ?? 0;
+  if (n === 0) return cardKeepsKingSafe(s, color, id, []);
   if (picked.length === n) return true;
   return targetOptions(s, color, id, picked).some((x) => hasCompletion(s, color, id, [...picked, x]));
 }
@@ -181,7 +191,7 @@ export function canPlayCard(s: GameState, color: Color, id: CardId, sel: Square[
   const n = CARDS[id]!.targets?.length ?? 0;
   if (sel.length !== n) return false;
   for (let i = 0; i < n; i++) if (!targetOptions(s, color, id, sel.slice(0, i)).includes(sel[i]!)) return false;
-  return true;
+  return n > 0 || cardKeepsKingSafe(s, color, id, sel);
 }
 
 /** Play an active card. It does not use up the turn, but only one card may be played per turn. */

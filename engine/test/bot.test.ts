@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { applyDecision, decide, fromPlacement, isLegal, newGame } from '../src/index.ts';
 import { P } from './helpers.ts';
 
-test('bot captures a hanging king at every level', () => {
+test('bot finds mate in one at every level', () => {
   for (const level of [1, 2, 3] as const) {
-    const s = fromPlacement('4k3/8/8/8/4R3/8/8/4K3');
+    const s = fromPlacement('6k1/5ppp/8/8/8/8/8/R5K1');
     const d = decide(s, { level, seed: 1 });
     assert.equal(d.kind, 'turn');
-    if (d.kind === 'turn') assert.deepEqual([d.move.from, d.move.to], [P('e4'), P('e8')]);
+    if (d.kind === 'turn') assert.deepEqual([d.move.from, d.move.to], [P('a1'), P('a8')]);
   }
 });
 

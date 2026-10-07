@@ -227,14 +227,24 @@ export function isSafe(s: GameState, m: Move, color: Color): boolean {
   return !inCheck(simulate(s, m), color);
 }
 
-/** Every legal move for `color`: like real chess, a move may not leave your own king in check. */
+/** A move that would capture a king. Never legal in play: a king in check gets a turn to answer it. */
+function takesKing(s: GameState, m: Move): boolean {
+  const c = captureSquare(s, m);
+  return c >= 0 && s.board[c]!.type === 'K';
+}
+
+/**
+ * Every legal move for `color`: like real chess, a move may not leave your own king in check,
+ * and kings are never captured (that would skip the opponent's chance to answer a check made by a card).
+ * Sandboxes (tutorials, card demos) still allow king captures.
+ */
 export function legalMoves(s: GameState, color: Color = s.turn): Move[] {
-  return pseudoMoves(s, color).filter((m) => isSafe(s, m, color));
+  return pseudoMoves(s, color).filter((m) => (s.sandbox || !takesKing(s, m)) && isSafe(s, m, color));
 }
 
 /** Cheaper than legalMoves(...).length > 0. */
 export function hasLegalMove(s: GameState, color: Color = s.turn): boolean {
-  return pseudoMoves(s, color).some((m) => isSafe(s, m, color));
+  return pseudoMoves(s, color).some((m) => (s.sandbox || !takesKing(s, m)) && isSafe(s, m, color));
 }
 
 export const sameMove = (a: Move, b: Move): boolean => moveKey(a) === moveKey(b);

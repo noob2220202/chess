@@ -31,13 +31,13 @@ test('silence stops the opponent from playing active cards for three turns', () 
 });
 
 test('quicksand freezes the first enemy piece that steps on it', () => {
-  const s = fromPlacement('4k3/8/8/8/8/8/8/r3K3', 'w');
+  const s = fromPlacement('4k3/8/8/8/8/8/r7/4K3', 'w');
   s.cards.w.hand.push('quicksand');
-  playCard(s, 'w', 'quicksand', [P('c1')]);
-  applyMove(s, mv('e1', 'e2'));
-  applyMove(s, mv('a1', 'c1'));
-  applyMove(s, mv('e2', 'e3'));
-  assert.ok(!legalMoves(s).some((m) => m.from === P('c1')), 'rook is stuck');
+  playCard(s, 'w', 'quicksand', [P('c2')]);
+  applyMove(s, mv('e1', 'f1'));
+  applyMove(s, mv('a2', 'c2'));
+  applyMove(s, mv('f1', 'g1'));
+  assert.ok(!legalMoves(s).some((m) => m.from === P('c2')), 'rook is stuck');
 });
 
 test('counterattack destroys a pawn that captures, king-armor shields the king', () => {

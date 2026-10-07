@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  applyMove, cloneState, fromPlacement, legalMoves, newGame, START_PLACEMENT, toPlacement,
+  applyMove, cardReady, cloneState, fromPlacement, legalMoves, newGame, START_PLACEMENT, toPlacement, targetOptions,
 } from '../src/index.ts';
 import type { GameState } from '../src/index.ts';
 import { P, mv } from './helpers.ts';
@@ -40,12 +40,19 @@ test('fairy piece movement counts on an empty board', () => {
   assert.equal(count('G'), 8);
 });
 
-test('capturing the king wins and ends the game', () => {
+test('a king is never captured: a check made by a card must be answered first', () => {
+  // White's card left Black in check during White's turn; White still may not take the king.
   const s = chess('4k3/8/8/8/4R3/8/8/4K3');
-  applyMove(s, mv('e4', 'e8'));
-  assert.equal(s.winner, 'w');
-  assert.equal(s.endReason, 'king-captured');
-  assert.throws(() => applyMove(s, mv('e8', 'e7')));
+  assert.ok(!legalMoves(s).some((m) => m.to === P('e8')));
+  assert.throws(() => applyMove(s, mv('e4', 'e8')));
+});
+
+test('a card may not leave its own king in check', () => {
+  const s = chess('4k3/4r3/8/8/8/8/4N3/4K3');
+  s.cards.w.hand.push('swap', 'march-order');
+  // Moving the e2 knight away (by card) would expose the king to the e7 rook.
+  assert.ok(!targetOptions(s, 'w', 'march-order', [P('e2')]).length, 'no safe destination');
+  assert.ok(!cardReady(s, 'w', 'march-order'));
 });
 
 test('like real chess, a king may not walk into attack and a check must be answered', () => {
