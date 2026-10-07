@@ -87,7 +87,9 @@ async function suite(name: string, makeStore: () => Promise<Store>) {
       const prof = await (await fetch(`${base}/api/users/${names[0]}`)).json();
       assert.equal(prof.rating.games, 1);
       assert.equal(prof.games.length, 1);
-      assert.notEqual(prof.rating.rating, 1500);
+      // Equal ratings stay at 1500 after a draw; any decisive result moves them.
+      if (g1.result.winner === 'draw') assert.equal(prof.rating.rating, 1500);
+      else assert.notEqual(prof.rating.rating, 1500);
       const gameRec = await (await fetch(`${base}/api/games/${prof.games[0].id}`)).json();
       assert.ok(gameRec.game.actions.length > 2);
       const stats = await (await fetch(`${base}/api/cards/stats`)).json();
