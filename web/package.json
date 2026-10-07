@@ -10,7 +10,8 @@
     "typecheck": "tsc -p .",
     "test": "node --test \"test/*.test.ts\"",
     "gen:icons": "node scripts/gen-card-icons.mjs",
-    "android": "npm run build && node scripts/android-prepare.mjs && cd android && ./gradlew assembleDebug"
+    "android": "npm run build && node scripts/android-prepare.mjs && cd android && ./gradlew assembleDebug",
+    "gen:art": "node scripts/gen-card-art.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^7.1.2",

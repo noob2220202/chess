@@ -128,6 +128,7 @@ export function cardReady(s: GameState, color: Color, id: CardId): boolean {
   const p = s.cards[color];
   if (p.offer || !p.hand.includes(id) || s.cardPly === s.ply) return false;
   if (def.canPlay && !def.canPlay(s, color)) return false;
+  if (sources(s).some(({ def: d, src }) => d.blocksCards?.(s, color, src))) return false;
   // At least one complete selection must exist.
   return hasCompletion(s, color, id, []);
 }
@@ -212,9 +213,10 @@ export function applyMove(s: GameState, m: Move, trusted = false): GameState {
 
 function endTurn(s: GameState, mover: Color, irreversible: boolean): GameState {
   s.quiet = irreversible ? 0 : s.quiet + 1;
+  const again = !s.sandbox && sources(s).some(({ def, src }) => def.keepTurn?.(s, mover, src));
   s.cards[mover].moves++;
   s.ply++;
-  if (!s.sandbox) s.turn = other(mover);
+  if (!s.sandbox && !again) s.turn = other(mover);
   startTurn(s);
   return s;
 }

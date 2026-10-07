@@ -91,7 +91,7 @@ async function suite(name: string, makeStore: () => Promise<Store>) {
       const gameRec = await (await fetch(`${base}/api/games/${prof.games[0].id}`)).json();
       assert.ok(gameRec.game.actions.length > 2);
       const stats = await (await fetch(`${base}/api/cards/stats`)).json();
-      assert.equal(stats.cards.length, 60);
+      assert.equal(stats.cards.length, 120);
       assert.ok(stats.cards.some((c: any) => c.games > 0));
       const board = await (await fetch(`${base}/api/leaderboard`)).json();
       assert.deepEqual(board.rows, [], 'provisional players are not on the leaderboard yet');

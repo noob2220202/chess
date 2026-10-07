@@ -1,6 +1,7 @@
 import { Check, Infinity as InfinityIcon, Zap } from 'lucide-react';
 import type { CardDef } from '@engine';
 import { CARD_EMBLEMS } from '../assets/cardEmblems.ts';
+import { CardArt, hasCardArt } from './CardArt.tsx';
 import { CATEGORY_LABEL } from './cardMeta.ts';
 
 /** Rarity tier from the design star rating. */
@@ -46,7 +47,9 @@ export function CardView({ def, mini, used, disabled, selected, done, guide, rea
         <span className="t-name">{def.name}</span>
         <span className={`gem r${r.tier}`} title={`${r.label} · ★${def.stars}`}><b>{stars}</b></span>
       </div>
-      <div className="t-art"><Emblem id={def.id} className="emblem" /></div>
+      <div className={`t-art${hasCardArt(def.id) ? ' has-board' : ''}`}>
+        {hasCardArt(def.id) ? <><CardArt id={def.id} /><Emblem id={def.id} className="emblem corner" /></> : <Emblem id={def.id} className="emblem" />}
+      </div>
       <div className="t-type">
         <span>{CATEGORY_LABEL[def.category]}</span>
         <span>{def.kind === 'active' ? <><Zap />액티브</> : <><InfinityIcon />패시브</>}</span>

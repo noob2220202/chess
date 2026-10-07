@@ -60,7 +60,8 @@ function negamax(s: GameState, depth: number, alpha: number, beta: number, ctx: 
     ctx.nodes++;
     const c = cloneState(s);
     applyMove(c, m, true);
-    const v = c.winner ? evaluate(c, me) : -negamax(c, depth - 1, -beta, -alpha, ctx);
+    // A card can give the same side another move; then the child score is already ours.
+    const v = c.winner ? evaluate(c, me) : c.turn === me ? negamax(c, depth - 1, alpha, beta, ctx) : -negamax(c, depth - 1, -beta, -alpha, ctx);
     if (v > best) best = v;
     if (v > alpha) alpha = v;
     if (alpha >= beta) break;
@@ -76,7 +77,7 @@ function bestMove(s: GameState, depth: number, ctx: SearchCtx, rng: Rng, noise: 
   for (const m of moves) {
     const c = cloneState(s);
     applyMove(c, m, true);
-    let v = c.winner ? evaluate(c, me) : -negamax(c, depth - 1, -Infinity, Infinity, ctx);
+    let v = c.winner ? evaluate(c, me) : c.turn === me ? negamax(c, depth - 1, -Infinity, Infinity, ctx) : -negamax(c, depth - 1, -Infinity, Infinity, ctx);
     v += (rng() - 0.5) * noise;
     if (!best || v > best.score) best = { move: m, score: v };
   }

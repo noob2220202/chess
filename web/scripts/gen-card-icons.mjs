@@ -20,6 +20,19 @@ export const CARD_EMBLEM = {
   'pawn-storm': 'lightning-storm', summit: 'mountaintop', sanctuary: 'greek-temple', 'queen-call': 'trumpet', stalwart: 'bordered-shield',
   haste: 'whirlwind', liquidate: 'crossed-swords', 'long-reach': 'barbed-spear', stasis: 'hourglass', shadow: 'shadow-follower',
   'last-push': 'charged-arrow',
+  // second set
+  'light-cavalry': 'horse-head', scout: 'spyglass', sidestep: 'sideswipe', 'royal-stroll': 'walking-boot', 'guard-muster': 'roman-shield',
+  'camel-caravan': 'camel-head', 'iron-pawns': 'anvil', 'knight-return': 'return-arrow', 'hidden-reserve': 'hidden', 'pawn-chain': 'linked-rings',
+  fianchetto: 'pisa-tower', shove: 'shield-bash', 'twin-towers': 'castle-ruins', mobilize: 'hunting-horn', 'sentinel-bishops': 'watchtower',
+  'smoke-screen': 'smoke-bomb', banner: 'flag-objective', 'pawn-trade': 'swap-bag', charge: 'trumpet-flag', 'queen-sortie': 'queen-crown',
+  'double-time': 'sands-of-time', transfigure: 'transform', 'promote-guard': 'visored-helm', 'camel-mount': 'camel', 'rook-teleport': 'portal',
+  lightning: 'focused-lightning', sacrifice: 'sacrificial-dagger', quicksand: 'quicksand', 'forward-base': 'campfire', veteran: 'medal-skull',
+  'battle-promotion': 'ribbon-medal', counterattack: 'sword-clash', repel: 'wave-strike', 'sky-horse': 'pegasus', tank: 'battle-tank',
+  silence: 'silenced', 'march-order': 'scroll-unfurled', consecrate: 'holy-grail', leapfrog: 'frog', 'iron-curtain': 'theater-curtains',
+  'promote-deep': 'crown-coin', 'king-armor': 'breastplate', zugzwang: 'chess-king', 'stand-firm': 'stone-wall', 'passed-pawn': 'run',
+  'bishop-cannon': 'cannon-ball', 'last-guard': 'guards', fortress: 'locked-fortress', 'rook-backup': 'guarded-tower', blast: 'explosion-rays',
+  'pawn-wave': 'big-wave', 'iron-king': 'crowned-skull', clone: 'mirror-mirror', gate: 'dungeon-gate', 'rook-sweep': 'broom',
+  'last-rites': 'tombstone', 'frost-line': 'ice-spear', 'double-agent': 'spy', 'color-shift': 'perspective-dice-six-faces-random', hourglass: 'empty-hourglass',
 };
 
 const out = {};

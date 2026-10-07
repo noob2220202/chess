@@ -67,6 +67,10 @@ export interface CardDef {
   onTurnStart?: (s: GameState, src: Source) => void;
   /** Return true to cancel a capture of the owner's king (the attacker is removed instead). */
   saveKing?: (s: GameState, attackerSq: Square, src: Source) => boolean;
+  /** Called after `mover` finishes a move (before the ply advances). Return true to let `mover` move again. */
+  keepTurn?: (s: GameState, mover: Color, src: Source) => boolean;
+  /** Return true to stop `color` from playing active cards. */
+  blocksCards?: (s: GameState, color: Color, src: Source) => boolean;
 
   // ---- active ----
   targets?: TargetSpec[];

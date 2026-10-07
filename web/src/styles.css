@@ -758,3 +758,25 @@ img, svg { display: block; }
   .m-game .player-strip { height: 44px; }
   .m-hand { height: 52px; }
 }
+
+/* ------------------------------------------------------------------ card art (mini board from the demo) */
+.tcg { --art-arrow: rgba(255, 196, 61, 0.95); --art-card: #c9a6ff; }
+.tcg .t-art.has-board { padding: 4.5cqw; }
+.tcg .t-art .card-art { position: relative; height: 100%; max-width: 100%; aspect-ratio: 1; filter: drop-shadow(0 1.6cqw 2.2cqw rgba(0, 0, 0, 0.35)); }
+.card-art .ca-frame { fill: rgba(20, 16, 10, 0.55); }
+.card-art .ca-l { fill: #efe3c8; }
+.card-art .ca-d { fill: #b48a62; }
+.card-art .ca-zone { fill: rgba(255, 196, 61, 0.28); stroke: rgba(255, 196, 61, 0.95); stroke-width: 0.06; stroke-dasharray: 0.14 0.09; }
+.card-art .ca-frozen { fill: rgba(120, 200, 255, 0.5); }
+.card-art .ca-target { fill: none; stroke: #c9a6ff; stroke-width: 0.09; }
+.card-art .ca-shield { fill: none; stroke: #6fb6ff; stroke-width: 0.09; }
+.card-art .ca-new { fill: rgba(255, 214, 102, 0.45); stroke: #ffd666; stroke-width: 0.05; }
+.card-art .ca-gone { opacity: 0.45; }
+.card-art .ca-changed image:first-child, .card-art .ca-new image:first-child { filter: drop-shadow(0 0 0.08px #ffd666) drop-shadow(0 0 0.12px #ffd666); }
+.card-art .ca-x { stroke: #ff5a52; stroke-width: 0.11; stroke-linecap: round; }
+.card-art .ca-arrow { stroke: var(--art-arrow); stroke-width: 0.16; stroke-linecap: round; }
+.card-art .ca-arrow.card { stroke: var(--art-card); stroke-dasharray: 0.2 0.12; }
+.card-art .ca-letter-bg { fill: #2a2420; stroke: #fff; stroke-width: 0.03; }
+.card-art .ca-letter { fill: #fff; font-size: 0.24px; font-weight: 800; text-anchor: middle; font-family: var(--font); }
+.tcg .t-art .emblem.corner { position: absolute; left: 3cqw; top: 3cqw; width: 15cqw; height: 15cqw; padding: 2.4cqw; border-radius: 50%; background: linear-gradient(160deg, var(--c1), var(--c2)); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45), 0 1cqw 2cqw rgba(0, 0, 0, 0.35); filter: none; z-index: 1; }
+.tcg .t-art.has-board::before { opacity: 0.08; }

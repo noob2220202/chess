@@ -7,10 +7,10 @@ import {
 import { P, mv, solveDemo } from './helpers.ts';
 
 
-test('there are 60 cards, 20 per draft round, with sane metadata', () => {
-  assert.equal(CARD_ORDER.length, 60);
+test('there are 120 cards, 40 per draft round, with sane metadata', () => {
+  assert.equal(CARD_ORDER.length, 120);
   for (const cat of ['OPENING', 'MIDDLE', 'END'] as const) {
-    assert.equal(CARD_ORDER.filter((id) => CARDS[id]!.category === cat).length, 20, cat);
+    assert.equal(CARD_ORDER.filter((id) => CARDS[id]!.category === cat).length, 40, cat);
   }
   for (const id of CARD_ORDER) {
     const c = CARDS[id]!;
@@ -18,7 +18,7 @@ test('there are 60 cards, 20 per draft round, with sane metadata', () => {
     assert.ok(c.description.length > 5, id);
     if (c.kind === 'active') assert.ok(c.activate, `${id} needs activate`);
   }
-  assert.equal(new Set(CARD_ORDER.map((id) => CARDS[id]!.name)).size, 60, 'names unique');
+  assert.equal(new Set(CARD_ORDER.map((id) => CARDS[id]!.name)).size, 120, 'names unique');
 });
 
 for (const id of CARD_ORDER) {

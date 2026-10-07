@@ -127,7 +127,7 @@ export default function Home() {
             </button>
             <button className="list-row" onClick={() => navigate('/cards')}>
               <span className="ic amber"><Layers /></span>
-              <span className="grow"><b>카드 연습</b><small>60장 중 {prog.demos.length}장 연습 완료</small></span>
+              <span className="grow"><b>카드 연습</b><small>{CARD_ORDER.length}장 중 {prog.demos.length}장 연습 완료</small></span>
               <ChevronRight className="chev" />
             </button>
             <button className="list-row" onClick={() => navigate('/play/local')}>

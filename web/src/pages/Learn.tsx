@@ -1,3 +1,4 @@
+import { CARD_ORDER } from '@engine';
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Layers } from 'lucide-react';
 import type { CardId, GameState } from '@engine';
@@ -41,7 +42,7 @@ export function LearnIndex() {
         })}
         <button className="list-row" onClick={() => navigate('/cards')}>
           <span className="ic violet"><Layers /></span>
-          <span className="grow"><b>카드 60장 실전 연습</b><small>카드 백과에서 모든 카드를 하나씩 직접 써 보세요</small></span>
+          <span className="grow"><b>카드 {CARD_ORDER.length}장 실전 연습</b><small>카드 백과에서 모든 카드를 하나씩 직접 써 보세요</small></span>
           <ChevronRight className="chev" />
         </button>
       </div>

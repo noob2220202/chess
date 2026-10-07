@@ -285,7 +285,8 @@ export function GameScreen(p: GameScreenProps) {
     />
   );
 
-  const statusNode = (viewing || target || p.status) ? (
+  const extraMove = !viewing && !!canAct && live.effects.some((e) => e.card === 'double-time' && e.owner === canAct && live.ply === e.until - 1);
+  const statusNode = (viewing || target || p.status || extraMove) ? (
     <>
       {viewing && (
         <div className="notice info"><ListOrdered /><span className="grow">{shownIdx}번째 기록을 보고 있습니다</span><button className="btn sm" onClick={() => setView(null)}>현재로</button></div>
@@ -295,7 +296,7 @@ export function GameScreen(p: GameScreenProps) {
           <Layers /><span className="grow"><b>{CARDS[target.id]!.name}</b> · {CARDS[target.id]!.targets![target.picked.length]?.prompt}{options.length === 0 ? ' (고를 수 있는 칸이 없습니다)' : ''}</span>
           <button className="btn sm" onClick={() => setTarget(null)}>취소</button>
         </div>
-      ) : !viewing && p.status}
+      ) : !viewing && (extraMove ? <div className="notice attn"><Layers /><span className="grow"><b>연속 행동</b> · 한 번 더 두세요. 이번 수로는 잡을 수 없습니다.</span></div> : p.status)}
     </>
   ) : null;
 

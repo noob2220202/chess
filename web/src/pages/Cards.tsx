@@ -29,7 +29,7 @@ export function CardsIndex() {
       <div className="head">
         <div className="row between top">
           <div>
-            <div className="eyebrow">카드 백과 · 연습 {done}/60</div>
+            <div className="eyebrow">카드 백과 · 연습 {done}/{CARD_ORDER.length}</div>
             <h1>증강 카드</h1>
           </div>
           <Link to="/cards/stats" className="btn sm"><BarChart3 />통계</Link>
